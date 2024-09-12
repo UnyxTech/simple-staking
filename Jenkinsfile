@@ -4,16 +4,16 @@ pipeline {
     environment {
         AWS_REGION = 'ap-southeast-1' // 替换为实际的AWS区域
         ECR_REGISTRY = '272557375378.dkr.ecr.${AWS_REGION}.amazonaws.com'
-        ECR_REPOSITORY = 'lorenzo/babylon-staking-api' // 替换为实际的ECR仓库名称
-        HELM_RELEASE_NAME = 'babylon-staking-api' // 替换为实际的Helm release名称
-        HELM_CHART_DIR = 'babylon-staking-api'
+        ECR_REPOSITORY = 'tomo/babylon-staking' // 替换为实际的ECR仓库名称
+        HELM_RELEASE_NAME = 'babylon-staking' // 替换为实际的Helm release名称
+        HELM_CHART_DIR = 'babylon-staking'
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         GIT_CREDENTIALS = 'github-supertobby-token'
-        GIT_BRANCH = 'main'
+        GIT_BRANCH = 'main' //helm-charts repo branch
         WEBHOOK_URL = credentials('webhook-feishu-dev')
         PROJECT_DIR = '.' //代码仓库的Dockerfile目录,当前目录设置为.
-        NAMESPACE = 'lorenzo'
+        NAMESPACE = 'tomo'
     }
 
 
@@ -57,13 +57,12 @@ pipeline {
                     sh "aws eks update-kubeconfig --region ap-southeast-1  --name AiCluster"
                     // 使用 Helm 部署到 Kubernetes
                     git branch: GIT_BRANCH, credentialsId: GIT_CREDENTIALS, url: 'https://github.com/NeverFadeAI/helm-charts.git'
-                    sh "pwd"
-                    sh "ls -al"
                     sh "cd ${HELM_CHART_DIR}"
                     sh """
                     helm upgrade --install ${HELM_RELEASE_NAME} ./${HELM_CHART_DIR} \
                     --set image.tag=${IMAGE_TAG} \
-                    --namespace ${NAMESPACE}
+                    --namespace ${NAMESPACE} \
+                    --create-namespace
                     """
                 }
             }
