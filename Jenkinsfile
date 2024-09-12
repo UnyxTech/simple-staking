@@ -57,6 +57,8 @@ pipeline {
                     sh "aws eks update-kubeconfig --region ap-southeast-1  --name AiCluster"
                     // 使用 Helm 部署到 Kubernetes
                     git branch: GIT_BRANCH, credentialsId: GIT_CREDENTIALS, url: 'https://github.com/NeverFadeAI/helm-charts.git'
+                    sh "pwd"
+                    sh "ls -al"
                     sh "cd ${HELM_CHART_DIR}"
                     sh """
                     helm upgrade --install ${HELM_RELEASE_NAME} ./${HELM_CHART_DIR} \
