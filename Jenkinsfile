@@ -12,7 +12,7 @@ pipeline {
         GIT_CREDENTIALS = 'github-supertobby-token'
         GIT_BRANCH = 'dev'
         WEBHOOK_URL = credentials('webhook-feishu-dev')
-        PROJECT_DIR = '.' #代码仓库的Dockerfile目录,当前目录设置为.
+        PROJECT_DIR = '.' //代码仓库的Dockerfile目录,当前目录设置为.
         NAMESPACE = 'lorenzo'
     }
 
