@@ -1,9 +1,16 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useSettingChainsFlat,
+  useTomoClientMap,
+  useTomoModalControl,
+  useTomoWalletConnect,
+  useTomoWalletState,
+} from "@tomo-inc/wallet-connect-sdk";
 import { networks } from "bitcoinjs-lib";
 import { initBTCCurve } from "btc-staking-ts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 
 import { network } from "@/config/network.config";
@@ -40,6 +47,8 @@ import { useError } from "./context/Error/ErrorContext";
 import { useTerms } from "./context/Terms/TermsContext";
 import { Delegation, DelegationState } from "./types/delegations";
 import { ErrorHandlerParam, ErrorState } from "./types/errors";
+
+import "@tomo-inc/wallet-connect-sdk/style.css";
 
 interface HomeProps {}
 
@@ -218,8 +227,22 @@ const Home: React.FC<HomeProps> = () => {
 
   const [connectModalOpen, setConnectModalOpen] = useState(false);
 
+  const tomoModal = useTomoModalControl();
+  const tomoClientMap = useTomoClientMap();
+  const tomoWalletConnect = useTomoWalletConnect();
+  const tomowalletState = useTomoWalletState();
+  const settingChainsFlat = useSettingChainsFlat();
+
+  const bitcoinSignetChain = useMemo(
+    () =>
+      settingChainsFlat.find((item) => {
+        return item.networkName === network && item.type === "bitcoin";
+      }),
+    [settingChainsFlat],
+  );
   const handleConnectModal = () => {
-    setConnectModalOpen(true);
+    // setConnectModalOpen(true);
+    tomoModal.open();
   };
 
   const handleDisconnectBTC = () => {
@@ -228,6 +251,7 @@ const Home: React.FC<HomeProps> = () => {
     setBTCWalletNetwork(undefined);
     setPublicKeyNoCoord("");
     setAddress("");
+    tomoWalletConnect.disconnect();
   };
 
   const handleConnectBTC = useCallback(
@@ -287,6 +311,94 @@ const Home: React.FC<HomeProps> = () => {
     },
     [showError],
   );
+
+  const setConnectedWalletData = useCallback(
+    async (walletProvider: WalletProvider) => {
+      try {
+        const address = await walletProvider.getAddress();
+        // check if the wallet address type is supported in babylon
+        const supported = isSupportedAddressType(address);
+        if (!supported) {
+          tomoWalletConnect.disconnect();
+          throw new Error(
+            "Invalid address type. Please use a Native SegWit or Taproot",
+          );
+        }
+
+        const balanceSat = await walletProvider.getBalance();
+        const publicKeyNoCoord = getPublicKeyNoCoord(
+          await walletProvider.getPublicKeyHex(),
+        );
+        setBTCWallet(walletProvider);
+        setBTCWalletBalanceSat(balanceSat);
+        setBTCWalletNetwork(toNetwork(await walletProvider.getNetwork()));
+        setAddress(address);
+        setPublicKeyNoCoord(publicKeyNoCoord.toString("hex"));
+      } catch (error: Error | any) {
+        tomoWalletConnect.disconnect();
+        console.warn("error:", error.message);
+        if (
+          error instanceof WalletError &&
+          error.getType() === WalletErrorType.ConnectionCancelled
+        ) {
+          // User cancelled the connection, hence do nothing
+          return;
+        }
+        let errorMessage;
+        switch (true) {
+          case /Incorrect address prefix for (Testnet \/ Signet|Mainnet)/.test(
+            error.message,
+          ):
+            errorMessage =
+              "Unsupported address type detected. Please use a Native SegWit or Taproot address.";
+            break;
+          default:
+            errorMessage = error.message;
+            break;
+        }
+        showError({
+          error: {
+            message: errorMessage,
+            errorState: ErrorState.WALLET,
+            errorTime: new Date(),
+          },
+        });
+      }
+    },
+    [showError, tomoWalletConnect],
+  );
+
+  useEffect(() => {
+    console.log("tomowalletState.isConnection", tomowalletState.isConnection);
+    if (
+      tomowalletState.isConnection &&
+      tomoClientMap.bitcoinProvider &&
+      !btcWallet &&
+      bitcoinSignetChain
+    ) {
+      const provider = tomoClientMap.bitcoinProvider;
+      tomoWalletConnect
+        .switchChain(bitcoinSignetChain)
+        .then(() => {
+          setConnectedWalletData(provider as unknown as WalletProvider);
+        })
+        .catch((e) => {
+          tomoWalletConnect.disconnect();
+          console.warn("error:", e.message);
+        })
+        .finally(() => {
+          tomoModal.close();
+        });
+    }
+  }, [
+    tomowalletState,
+    bitcoinSignetChain,
+    tomoClientMap.bitcoinProvider,
+    btcWallet,
+    tomoWalletConnect,
+    tomoModal,
+    setConnectedWalletData,
+  ]);
 
   // Subscribe to account changes
   useEffect(() => {
