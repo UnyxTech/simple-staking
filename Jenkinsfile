@@ -10,7 +10,7 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         GIT_CREDENTIALS = 'github-supertobby-token'
-        GIT_BRANCH = 'dev'
+        GIT_BRANCH = 'main'
         WEBHOOK_URL = credentials('webhook-feishu-dev')
         PROJECT_DIR = '.' //代码仓库的Dockerfile目录,当前目录设置为.
         NAMESPACE = 'lorenzo'
