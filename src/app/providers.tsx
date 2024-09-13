@@ -3,14 +3,39 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experimental";
-import { ThemeProvider } from "next-themes";
+import {
+  tomoBitcoin,
+  tomoBitcoinSignet,
+  TomoContextProvider,
+} from "@tomo-inc/wallet-connect-sdk";
+import { ThemeProvider, useTheme } from "next-themes";
 import React from "react";
+
+import { network } from "@/config/network.config";
 
 import { ErrorProvider } from "./context/Error/ErrorContext";
 import { TermsProvider } from "./context/Terms/TermsContext";
 import { GlobalParamsProvider } from "./context/api/GlobalParamsProvider";
 import { StakingStatsProvider } from "./context/api/StakingStatsProvider";
 import { BtcHeightProvider } from "./context/mempool/BtcHeightProvider";
+
+function App({ children }: React.PropsWithChildren) {
+  const { resolvedTheme } = useTheme();
+
+  /** get bitcoinChains for TomoContextProvider */
+  const bitcoinChains = [tomoBitcoin, tomoBitcoinSignet].filter(
+    (item) => item.networkName === network,
+  );
+
+  return (
+    <TomoContextProvider
+      bitcoinChains={bitcoinChains}
+      style={{ theme: resolvedTheme, primaryColor: "#FF7C2A" }}
+    >
+      {children}
+    </TomoContextProvider>
+  );
+}
 
 function Providers({ children }: React.PropsWithChildren) {
   const [client] = React.useState(new QueryClient());
@@ -24,7 +49,7 @@ function Providers({ children }: React.PropsWithChildren) {
               <BtcHeightProvider>
                 <StakingStatsProvider>
                   <ReactQueryStreamedHydration>
-                    {children}
+                    <App>{children}</App>
                   </ReactQueryStreamedHydration>
                 </StakingStatsProvider>
               </BtcHeightProvider>

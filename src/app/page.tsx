@@ -1,6 +1,12 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useTomoModalControl,
+  useTomoProviders,
+  useTomoWalletConnect,
+  useTomoWalletState,
+} from "@tomo-inc/wallet-connect-sdk";
 import { networks } from "bitcoinjs-lib";
 import { initBTCCurve } from "btc-staking-ts";
 import { useCallback, useEffect, useState } from "react";
@@ -40,6 +46,8 @@ import { useError } from "./context/Error/ErrorContext";
 import { useTerms } from "./context/Terms/TermsContext";
 import { Delegation, DelegationState } from "./types/delegations";
 import { ErrorHandlerParam, ErrorState } from "./types/errors";
+
+import "@tomo-inc/wallet-connect-sdk/style.css";
 
 interface HomeProps {}
 
@@ -218,8 +226,14 @@ const Home: React.FC<HomeProps> = () => {
 
   const [connectModalOpen, setConnectModalOpen] = useState(false);
 
+  const tomoModal = useTomoModalControl();
+  const tomoProviders = useTomoProviders();
+  const tomoWalletConnect = useTomoWalletConnect();
+  const tomowalletState = useTomoWalletState();
+
   const handleConnectModal = () => {
-    setConnectModalOpen(true);
+    // setConnectModalOpen(true);
+    tomoModal.open("connect");
   };
 
   const handleDisconnectBTC = () => {
@@ -228,6 +242,7 @@ const Home: React.FC<HomeProps> = () => {
     setBTCWalletNetwork(undefined);
     setPublicKeyNoCoord("");
     setAddress("");
+    tomoWalletConnect.disconnect();
   };
 
   const handleConnectBTC = useCallback(
@@ -287,6 +302,78 @@ const Home: React.FC<HomeProps> = () => {
     },
     [showError],
   );
+
+  const setConnectedWalletData = useCallback(
+    async (walletProvider: WalletProvider) => {
+      try {
+        const address = await walletProvider.getAddress();
+        // check if the wallet address type is supported in babylon
+        const supported = isSupportedAddressType(address);
+        if (!supported) {
+          tomoWalletConnect.disconnect();
+          throw new Error(
+            "Invalid address type. Please use a Native SegWit or Taproot",
+          );
+        }
+
+        const balanceSat = await walletProvider.getBalance();
+        const publicKeyNoCoord = getPublicKeyNoCoord(
+          await walletProvider.getPublicKeyHex(),
+        );
+        setBTCWallet(walletProvider);
+        setBTCWalletBalanceSat(balanceSat);
+        setBTCWalletNetwork(toNetwork(await walletProvider.getNetwork()));
+        setAddress(address);
+        setPublicKeyNoCoord(publicKeyNoCoord.toString("hex"));
+      } catch (error: Error | any) {
+        tomoWalletConnect.disconnect();
+        console.warn("error:", error.message);
+        if (
+          error instanceof WalletError &&
+          error.getType() === WalletErrorType.ConnectionCancelled
+        ) {
+          // User cancelled the connection, hence do nothing
+          return;
+        }
+        let errorMessage;
+        switch (true) {
+          case /Incorrect address prefix for (Testnet \/ Signet|Mainnet)/.test(
+            error.message,
+          ):
+            errorMessage =
+              "Unsupported address type detected. Please use a Native SegWit or Taproot address.";
+            break;
+          default:
+            errorMessage = error.message;
+            break;
+        }
+        showError({
+          error: {
+            message: errorMessage,
+            errorState: ErrorState.WALLET,
+            errorTime: new Date(),
+          },
+        });
+      }
+    },
+    [showError, tomoWalletConnect],
+  );
+
+  useEffect(() => {
+    // tomoClientMap.state: 1 - initialed, 0 - initialing
+    if (tomowalletState.isConnected && tomoProviders.state && !btcWallet) {
+      const provider = tomoProviders.bitcoinProvider;
+      provider &&
+        setConnectedWalletData(provider as unknown as WalletProvider)
+          .catch((e) => {
+            tomoWalletConnect.disconnect();
+            console.warn("error:", e.message);
+          })
+          .finally(() => {
+            tomoModal.close();
+          });
+    }
+  }, [tomoProviders.state, tomowalletState.isConnected, btcWallet]);
 
   // Subscribe to account changes
   useEffect(() => {
