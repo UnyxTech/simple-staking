@@ -428,6 +428,16 @@ const Home: React.FC<HomeProps> = () => {
       );
   }
 
+  const pushTx = useCallback(
+    async (txHex: string) => await btcWallet!.pushTx(txHex),
+    [btcWallet],
+  );
+
+  const getNetworkFees = useCallback(
+    async () => await btcWallet!.getNetworkFees(),
+    [btcWallet],
+  );
+
   return (
     <main
       className={`relative h-full min-h-svh w-full ${network === Network.MAINNET ? "main-app-mainnet" : "main-app-testnet"}`}
@@ -483,13 +493,13 @@ const Home: React.FC<HomeProps> = () => {
                 btcWalletNetwork={btcWalletNetwork}
                 address={address}
                 signPsbtTx={signPsbtTransaction(btcWallet)}
-                pushTx={btcWallet.pushTx}
+                pushTx={pushTx}
                 queryMeta={{
                   next: fetchNextDelegationsPage,
                   hasMore: hasNextDelegationsPage,
                   isFetchingMore: isFetchingNextDelegationsPage,
                 }}
-                getNetworkFees={btcWallet.getNetworkFees}
+                getNetworkFees={getNetworkFees}
               />
             )}
           {/* At this point of time is not used */}
