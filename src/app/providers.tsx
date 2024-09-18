@@ -19,6 +19,8 @@ import { GlobalParamsProvider } from "./context/api/GlobalParamsProvider";
 import { StakingStatsProvider } from "./context/api/StakingStatsProvider";
 import { BtcHeightProvider } from "./context/mempool/BtcHeightProvider";
 
+type Theme = "dark" | "light";
+
 function App({ children }: React.PropsWithChildren) {
   const { resolvedTheme } = useTheme();
 
@@ -30,7 +32,7 @@ function App({ children }: React.PropsWithChildren) {
   return (
     <TomoContextProvider
       bitcoinChains={bitcoinChains}
-      style={{ theme: resolvedTheme, primaryColor: "#FF7C2A" }}
+      style={{ theme: resolvedTheme as Theme, primaryColor: "#FF7C2A" }}
     >
       {children}
     </TomoContextProvider>
