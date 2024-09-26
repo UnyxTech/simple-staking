@@ -32,6 +32,36 @@ function App({ children }: React.PropsWithChildren) {
   return (
     <TomoContextProvider
       bitcoinChains={bitcoinChains}
+      // indexWallets={[
+      //   'bitcoin_tomo',
+      //   'bitcoin_okx',
+      //   'bitcoin_unisat',
+      //   'bitcoin_onekey',
+      //   'bitcoin_bitget',
+      //   'bitcoin_imtoken',
+      //   'bitcoin_binance',
+      // ]}
+      // connectionHints={[
+      //   {
+      //     text: 'Subject to Developer’s compliance with the terms and conditions of this Agreement',
+      //     logo: (
+      //       <img className={'tm-size-5'} src={'https://tomo.inc/favicon.ico'} />
+      //     )
+      //   },
+      //   {
+      //     text: 'I certify that there are no Bitcoin inscriptions tokens in my wallet.'
+      //   },
+      //   {
+      //     isRequired: true,
+      //     text: (
+      //       <span>
+      //         I certify that I have read and accept the updated{' '}
+      //         <a className={'tm-text-primary'}>Terms of Use</a> and{' '}
+      //         <a className={'tm-text-primary'}>Privacy Policy</a>.
+      //       </span>
+      //     )
+      //   }
+      // ]}
       style={{ theme: resolvedTheme as Theme, primaryColor: "#FF7C2A" }}
     >
       {children}
