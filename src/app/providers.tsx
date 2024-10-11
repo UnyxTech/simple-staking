@@ -11,6 +11,8 @@ import {
 import { ThemeProvider, useTheme } from "next-themes";
 import React from "react";
 
+import { network } from "@/config/network.config";
+
 import { ErrorProvider } from "./context/Error/ErrorContext";
 import { TermsProvider } from "./context/Terms/TermsContext";
 import { GlobalParamsProvider } from "./context/api/GlobalParamsProvider";
@@ -24,7 +26,7 @@ function App({ children }: React.PropsWithChildren) {
 
   /** get bitcoinChains for TomoContextProvider */
   const bitcoinChains = [tomoBitcoin, tomoBitcoinSignet].filter(
-    (item) => item.network === "signet",
+    (item) => item.network === network,
   );
 
   return (
