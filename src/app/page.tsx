@@ -12,7 +12,7 @@ import { initBTCCurve } from "btc-staking-ts";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 
-import { network } from "@/config/network.config";
+import { getNetworkConfig, network } from "@/config/network.config";
 import { getCurrentGlobalParamsVersion } from "@/utils/globalParams";
 import { calculateDelegationsDiff } from "@/utils/local_storage/calculateDelegationsDiff";
 import { getDelegationsLocalStorageKey } from "@/utils/local_storage/getDelegationsLocalStorageKey";
@@ -378,6 +378,8 @@ const Home: React.FC<HomeProps> = () => {
   // Subscribe to account changes
   useEffect(() => {
     if (btcWallet) {
+      console.log("network:", getNetworkConfig().network);
+      btcWallet.getAddress().then(console.log);
       let once = false;
       btcWallet.on("accountChanged", () => {
         if (!once) {
