@@ -11,6 +11,8 @@ import {
 import { ThemeProvider, useTheme } from "next-themes";
 import React from "react";
 
+import IconBlack from "@/app/assets/icon-black.svg";
+import IconWhite from "@/app/assets/icon-white.svg";
 import { network } from "@/config/network.config";
 
 import { ErrorProvider } from "./context/Error/ErrorContext";
@@ -41,6 +43,14 @@ function App({ children }: React.PropsWithChildren) {
           network: "cosmoshub-4",
         },
       ]}
+      chainOption={{
+        cosmos: {
+          id: "cosmos",
+          name: "Babylon",
+          logo: IconBlack.src,
+          darkLogo: IconWhite.src,
+        },
+      }}
       // indexWallets={[
       //   'bitcoin_tomo',
       //   'bitcoin_okx',
