@@ -35,6 +35,7 @@ function App({ children }: React.PropsWithChildren) {
     <TomoContextProvider
       bitcoinChains={bitcoinChains}
       multiNetworkConnection={true}
+      showChainType={false}
       cosmosChains={[
         {
           id: 2,
