@@ -40,6 +40,11 @@ function App({ children }: React.PropsWithChildren) {
           name: "Cosmos",
           type: "cosmos",
           network: "cosmoshub-4",
+          // rpcUrls: {
+          //   default: {
+          //     http: ["https://rpc.cosmos.networkxxxxxx"],
+          //   },
+          // }
         },
       ]}
       chainOption={{
