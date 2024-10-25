@@ -15,6 +15,8 @@ import IconBlack from "@/app/assets/icon-black.svg";
 import IconWhite from "@/app/assets/icon-white.svg";
 import { network } from "@/config/network.config";
 
+import bbnTest from "../config/bbnTest.json";
+
 import { ErrorProvider } from "./context/Error/ErrorContext";
 import { TermsProvider } from "./context/Terms/TermsContext";
 import { GlobalParamsProvider } from "./context/api/GlobalParamsProvider";
@@ -39,12 +41,13 @@ function App({ children }: React.PropsWithChildren) {
           id: 2,
           name: "Cosmos",
           type: "cosmos",
-          network: "cosmoshub-4",
-          // rpcUrls: {
-          //   default: {
-          //     http: ["https://rpc.cosmos.networkxxxxxx"],
-          //   },
-          // }
+          network: "bbn-test-3",
+          modularData: bbnTest,
+          rpcUrls: {
+            default: {
+              http: ["https://rpc.testnet3.babylonchain.io"],
+            },
+          },
         },
       ]}
       chainOption={{
