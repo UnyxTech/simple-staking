@@ -2,18 +2,18 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'ap-southeast-1'
-        ECR_REGISTRY = '272557375378.dkr.ecr.${AWS_REGION}.amazonaws.com'
+        AWS_REGION = 'us-west-1'
+        ECR_REGISTRY = '909313268265.dkr.ecr.${AWS_REGION}.amazonaws.com'
         ECR_REPOSITORY = 'tomo/babylon-staking'
         HELM_RELEASE_NAME = 'babylon-staking'
         HELM_CHART_DIR = 'babylon-staking'
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id-tomo')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key-tomo')
         GIT_CREDENTIALS = 'github-supertobby-token'
         GIT_BRANCH = 'main'
         WEBHOOK_URL = credentials('webhook-feishu-dev')
         PROJECT_DIR = '.'
-        NAMESPACE = 'tomo'
+        NAMESPACE = 'tomo-prod'
     }
 
 
