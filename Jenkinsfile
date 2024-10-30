@@ -14,6 +14,7 @@ pipeline {
         WEBHOOK_URL = credentials('webhook-feishu-dev')
         PROJECT_DIR = '.'
         NAMESPACE = 'tomo-prod'
+        CLUSTER_NAME = 'tomo'
     }
 
 
@@ -51,7 +52,7 @@ pipeline {
         stage('Deploy with Helm') {
             steps {
                 script {
-                    sh "aws eks update-kubeconfig --region ap-southeast-1  --name AiCluster"
+                    sh "aws eks update-kubeconfig --region ap-southeast-1  --name ${CLUSTER_NAME}"
                     git branch: GIT_BRANCH, credentialsId: GIT_CREDENTIALS, url: 'https://github.com/NeverFadeAI/helm-charts.git'
                     sh "cd ${HELM_CHART_DIR}"
                     sh """
