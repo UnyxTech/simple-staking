@@ -43,10 +43,8 @@ function App({ children }: React.PropsWithChildren) {
           type: "cosmos",
           network: "bbn-test-3",
           modularData: bbnTest,
-          rpcUrls: {
-            default: {
-              http: ["https://rpc.testnet3.babylonchain.io"],
-            },
+          backendUrls: {
+            rpcRrl: "https://rpc.testnet3.babylonchain.io",
           },
         },
       ]}
