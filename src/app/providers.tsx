@@ -44,7 +44,7 @@ function App({ children }: React.PropsWithChildren) {
           network: "bbn-test-3",
           modularData: bbnTest,
           backendUrls: {
-            rpcRrl: "https://rpc.testnet3.babylonchain.io",
+            rpcUrl: "https://rpc.testnet3.babylonchain.io",
           },
         },
       ]}
