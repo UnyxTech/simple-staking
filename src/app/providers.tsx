@@ -11,11 +11,7 @@ import {
 import { ThemeProvider, useTheme } from "next-themes";
 import React from "react";
 
-import IconBlack from "@/app/assets/icon-black.svg";
-import IconWhite from "@/app/assets/icon-white.svg";
 import { network } from "@/config/network.config";
-
-import bbnTest from "../config/bbnTest.json";
 
 import { ErrorProvider } from "./context/Error/ErrorContext";
 import { TermsProvider } from "./context/Terms/TermsContext";
@@ -36,26 +32,7 @@ function App({ children }: React.PropsWithChildren) {
   return (
     <TomoContextProvider
       bitcoinChains={bitcoinChains}
-      cosmosChains={[
-        {
-          id: 2,
-          name: "Cosmos",
-          type: "cosmos",
-          network: "bbn-test-3",
-          modularData: bbnTest,
-          backendUrls: {
-            rpcUrl: "https://rpc.testnet3.babylonchain.io",
-          },
-        },
-      ]}
-      chainOption={{
-        cosmos: {
-          id: "cosmos",
-          name: "Babylon",
-          logo: IconBlack.src,
-          darkLogo: IconWhite.src,
-        },
-      }}
+      chainTypes={["bitcoin"]}
       // indexWallets={[
       //   'bitcoin_tomo',
       //   'bitcoin_okx',
@@ -86,7 +63,11 @@ function App({ children }: React.PropsWithChildren) {
       //     )
       //   }
       // ]}
-      style={{ theme: resolvedTheme as Theme, primaryColor: "#FF7C2A" }}
+      style={{
+        theme: resolvedTheme as Theme,
+        primaryColor: "#FF7C2A",
+        rounded: "small",
+      }}
     >
       {children}
     </TomoContextProvider>

@@ -233,7 +233,7 @@ const Home: React.FC<HomeProps> = () => {
 
   const handleConnectModal = () => {
     // setConnectModalOpen(true);
-    tomoModal.open("connect");
+    tomoModal.open("bitcoin");
   };
 
   const handleDisconnectBTC = () => {
