@@ -32,7 +32,7 @@ function App({ children }: React.PropsWithChildren) {
   return (
     <TomoContextProvider
       bitcoinChains={bitcoinChains}
-      chainTypes={["bitcoin"]}
+      // chainTypes={["bitcoin"]}
       // indexWallets={[
       //   'bitcoin_tomo',
       //   'bitcoin_okx',

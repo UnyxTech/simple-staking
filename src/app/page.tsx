@@ -231,9 +231,10 @@ const Home: React.FC<HomeProps> = () => {
   const tomoWalletConnect = useTomoWalletConnect();
   const tomowalletState = useTomoWalletState();
 
-  const handleConnectModal = () => {
+  const handleConnectModal = async () => {
     // setConnectModalOpen(true);
-    tomoModal.open("bitcoin");
+    await tomoModal.open("bitcoin");
+    await tomoModal.open("cosmos");
   };
 
   const handleDisconnectBTC = () => {
@@ -267,6 +268,7 @@ const Home: React.FC<HomeProps> = () => {
         );
         setBTCWallet(walletProvider);
         setBTCWalletBalanceSat(balanceSat);
+        console.log("network:", await walletProvider.getNetwork());
         setBTCWalletNetwork(toNetwork(await walletProvider.getNetwork()));
         setAddress(address);
         setPublicKeyNoCoord(publicKeyNoCoord.toString("hex"));
@@ -322,6 +324,7 @@ const Home: React.FC<HomeProps> = () => {
         );
         setBTCWallet(walletProvider);
         setBTCWalletBalanceSat(balanceSat);
+        console.log("network1:", await walletProvider.getNetwork());
         setBTCWalletNetwork(toNetwork(await walletProvider.getNetwork()));
         setAddress(address);
         setPublicKeyNoCoord(publicKeyNoCoord.toString("hex"));
