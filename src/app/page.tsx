@@ -233,8 +233,9 @@ const Home: React.FC<HomeProps> = () => {
 
   const handleConnectModal = async () => {
     // setConnectModalOpen(true);
-    await tomoModal.open("bitcoin");
-    await tomoModal.open("cosmos");
+    if (await tomoModal.open("bitcoin")) {
+      await tomoModal.open("cosmos");
+    }
   };
 
   const handleDisconnectBTC = () => {
