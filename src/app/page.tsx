@@ -234,8 +234,12 @@ const Home: React.FC<HomeProps> = () => {
   const handleConnectModal = async () => {
     // setConnectModalOpen(true);
     if (await tomoModal.open("bitcoin")) {
-      await tomoModal.open("cosmos");
+      if (await tomoModal.open("cosmos")) {
+        // success
+        return;
+      }
     }
+    await tomoWalletConnect.disconnect();
   };
 
   const handleDisconnectBTC = () => {
@@ -367,6 +371,8 @@ const Home: React.FC<HomeProps> = () => {
     // tomoClientMap.state: 1 - initialed, 0 - initialing
     if (tomowalletState.isConnected && tomoProviders.state && !btcWallet) {
       const provider = tomoProviders.bitcoinProvider;
+      // @ts-ignore
+      window.bitcoinState = tomowalletState.bitcoin;
       provider &&
         setConnectedWalletData(provider as unknown as WalletProvider)
           .catch((e) => {
