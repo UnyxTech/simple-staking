@@ -2,7 +2,7 @@ import { Network } from "@/utils/wallet/wallet_provider";
 
 // export const network =
 //   (process.env.NEXT_PUBLIC_NETWORK as Network) || Network.SIGNET;
-export const network = Network.MAINNET;
+export const network = Network.MAINNET as Network;
 
 interface NetworkConfig {
   coinName: string;
