@@ -3,9 +3,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experimental";
-import { tomoBitcoin, TomoContextProvider } from "@tomo-inc/wallet-connect-sdk";
+import {
+  tomoBitcoin,
+  tomoBitcoinSignet,
+  TomoContextProvider,
+} from "@tomo-inc/wallet-connect-sdk";
 import { ThemeProvider, useTheme } from "next-themes";
 import React from "react";
+
+import { network } from "@/config/network.config";
 
 import { ErrorProvider } from "./context/Error/ErrorContext";
 import { TermsProvider } from "./context/Terms/TermsContext";
@@ -18,13 +24,13 @@ type Theme = "dark" | "light";
 function App({ children }: React.PropsWithChildren) {
   const { resolvedTheme } = useTheme();
   /** get bitcoinChains for TomoContextProvider */
-  // const bitcoinChains = [tomoBitcoin, tomoBitcoinSignet].filter(
-  //   (item) => item.network === network,
-  // );
+  const bitcoinChains = [tomoBitcoin, tomoBitcoinSignet].filter(
+    (item) => item.network === network,
+  );
 
   return (
     <TomoContextProvider
-      bitcoinChains={tomoBitcoin}
+      bitcoinChains={bitcoinChains}
       // chainTypes={["bitcoin"]}
       // indexWallets={[
       //   'bitcoin_tomo',
