@@ -19,8 +19,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report",
-    "preinstall": "npx npm-force-resolutions"
+    "test:e2e:report": "playwright show-report"
   },
   "engines": {
     "node": "22.3.0"
