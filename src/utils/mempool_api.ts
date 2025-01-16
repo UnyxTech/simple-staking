@@ -1,8 +1,45 @@
-import { getNetworkConfig } from "@/config/network.config";
+import { UTXO } from "@babylonlabs-io/btc-staking-ts";
 
-import { Fees, UTXO } from "./wallet/wallet_provider";
+import { Fees } from "@/app/types/fee";
+import { getNetworkConfigBTC } from "@/config/network/btc";
 
-const { mempoolApiUrl } = getNetworkConfig();
+const { mempoolApiUrl } = getNetworkConfigBTC();
+
+export interface MerkleProof {
+  blockHeight: number;
+  merkle: string[];
+  pos: number;
+}
+
+interface TxInfo {
+  txid: string;
+  version: number;
+  locktime: number;
+  vin: string[];
+  vout: string[];
+  size: number;
+  weight: number;
+  fee: number;
+  status: {
+    confirmed: boolean;
+    blockHeight: number;
+    blockHash: string;
+    blockTime: number;
+  };
+}
+
+interface MempoolUTXO extends UTXO {
+  confirmed: boolean;
+}
+
+export class ServerError extends Error {
+  constructor(
+    message: string,
+    public code: number,
+  ) {
+    super(message);
+  }
+}
 
 /*
     URL Construction methods
@@ -46,6 +83,16 @@ function validateAddressUrl(address: string): URL {
 // URL for the transaction info endpoint
 function txInfoUrl(txId: string): URL {
   return new URL(mempoolAPI + "tx/" + txId);
+}
+
+// URL for the transaction merkle proof endpoint
+function txMerkleProofUrl(txId: string): URL {
+  return new URL(mempoolAPI + "tx/" + txId + "/merkle-proof");
+}
+
+// URL for the transaction hex endpoint
+function txHexUrl(txId: string): URL {
+  return new URL(mempoolAPI + "tx/" + txId + "/hex");
 }
 
 /**
@@ -109,6 +156,7 @@ export async function getNetworkFees(): Promise<Fees> {
     return await response.json();
   }
 }
+
 // Get the tip height of the BTC chain
 export async function getTipHeight(): Promise<number> {
   const response = await fetch(btcTipHeightUrl());
@@ -125,19 +173,20 @@ export async function getTipHeight(): Promise<number> {
 
 /**
  * Retrieve a set of UTXOs that are available to an address
- * and satisfy the `amount` requirement if provided. Otherwise, fetch all UTXOs.
- * The UTXOs are chosen based on descending amount order.
+ * The response including unconfirmed UTXOs
  * @param address - The Bitcoin address in string format.
- * @param amount - The amount we expect the resulting UTXOs to satisfy.
  * @returns A promise that resolves into a list of UTXOs.
  */
-export async function getFundingUTXOs(
-  address: string,
-  amount?: number,
-): Promise<UTXO[]> {
+export async function getUTXOs(address: string): Promise<MempoolUTXO[]> {
   // Get all UTXOs for the given address
-
-  let utxos = null;
+  let utxos: {
+    txid: string;
+    vout: number;
+    value: number;
+    status: {
+      confirmed: boolean;
+    };
+  }[] = [];
   try {
     const response = await fetch(utxosInfoUrl(address));
     utxos = await response.json();
@@ -145,31 +194,7 @@ export async function getFundingUTXOs(
     throw new Error(error?.message || error);
   }
 
-  // Remove unconfirmed UTXOs as they are not yet available for spending
-  // and sort them in descending order according to their value.
-  // We want them in descending order, as we prefer to find the least number
-  // of inputs that will satisfy the `amount` requirement,
-  // as less inputs lead to a smaller transaction and therefore smaller fees.
-  const confirmedUTXOs = utxos
-    .filter((utxo: any) => utxo.status.confirmed)
-    .sort((a: any, b: any) => b.value - a.value);
-
-  // If amount is provided, reduce the list of UTXOs into a list that
-  // contains just enough UTXOs to satisfy the `amount` requirement.
-  let sliced = confirmedUTXOs;
-  if (amount) {
-    var sum = 0;
-    for (var i = 0; i < confirmedUTXOs.length; ++i) {
-      sum += confirmedUTXOs[i].value;
-      if (sum > amount) {
-        break;
-      }
-    }
-    if (sum < amount) {
-      return [];
-    }
-    sliced = confirmedUTXOs.slice(0, i + 1);
-  }
+  const sortedUTXOs = utxos.sort((a: any, b: any) => b.value - a.value);
 
   const response = await fetch(validateAddressUrl(address));
   const addressInfo = await response.json();
@@ -180,12 +205,13 @@ export async function getFundingUTXOs(
 
   // Iterate through the final list of UTXOs to construct the result list.
   // The result contains some extra information,
-  return sliced.map((s: any) => {
+  return sortedUTXOs.map((s) => {
     return {
       txid: s.txid,
       vout: s.vout,
       value: s.value,
-      scriptPubKey: scriptPubKey,
+      scriptPubKey,
+      confirmed: s.status.confirmed,
     };
   });
 }
@@ -195,11 +221,71 @@ export async function getFundingUTXOs(
  * @param txId - The transaction ID in string format.
  * @returns A promise that resolves into the transaction information.
  */
-export async function getTxInfo(txId: string): Promise<any> {
+export async function getTxInfo(txId: string): Promise<TxInfo> {
   const response = await fetch(txInfoUrl(txId));
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(err);
+    throw new ServerError(err, response.status);
   }
-  return await response.json();
+  const { txid, version, locktime, vin, vout, size, weight, fee, status } =
+    await response.json();
+  return {
+    txid,
+    version,
+    locktime,
+    vin,
+    vout,
+    size,
+    weight,
+    fee,
+    status: {
+      confirmed: status.confirmed,
+      blockHeight: status.block_height,
+      blockHash: status.block_hash,
+      blockTime: status.block_time,
+    },
+  };
+}
+
+/**
+ * Retrieve the merkle proof for a transaction.
+ * @param txId - The transaction ID in string format.
+ * @returns A promise that resolves into the merkle proof.
+ */
+export async function getTxMerkleProof(txId: string): Promise<MerkleProof> {
+  const response = await fetch(txMerkleProofUrl(txId));
+  if (!response.ok) {
+    const err = await response.text();
+    throw new ServerError(err, response.status);
+  }
+  const data: {
+    block_height: number;
+    merkle: string[];
+    pos: number;
+  } = await response.json();
+
+  const { block_height, merkle, pos } = data;
+  if (!block_height || !merkle.length || !pos) {
+    throw new Error("Invalid transaction merkle proof result returned");
+  }
+
+  return {
+    blockHeight: block_height,
+    merkle,
+    pos,
+  };
+}
+
+/**
+ * Retrieve the hex representation of a transaction.
+ * @param txId - The transaction ID in string format.
+ * @returns A promise that resolves into the transaction hex.
+ */
+export async function getTxHex(txId: string): Promise<string> {
+  const response = await fetch(txHexUrl(txId));
+  if (!response.ok) {
+    const err = await response.text();
+    throw new ServerError(err, response.status);
+  }
+  return await response.text();
 }

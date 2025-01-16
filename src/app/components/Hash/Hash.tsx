@@ -1,6 +1,8 @@
+import { Text } from "@babylonlabs-io/bbn-core-ui";
 import { useEffect, useState } from "react";
 import { FiCopy } from "react-icons/fi";
 import { IoIosCheckmarkCircle } from "react-icons/io";
+import { twJoin } from "tailwind-merge";
 import { useCopyToClipboard } from "usehooks-ts";
 
 import { trim } from "@/utils/trim";
@@ -11,6 +13,7 @@ interface HashProps {
   address?: boolean;
   small?: boolean;
   fullWidth?: boolean;
+  symbols?: number;
 }
 
 export const Hash: React.FC<HashProps> = ({
@@ -19,11 +22,13 @@ export const Hash: React.FC<HashProps> = ({
   address,
   small,
   fullWidth,
+  symbols = 8,
 }) => {
   const [_value, copy] = useCopyToClipboard();
   const [copiedText, setCopiedText] = useState("");
 
   const handleCopy = () => {
+    if (!value) return;
     setCopiedText("Copied!");
     copy(value);
   };
@@ -35,18 +40,25 @@ export const Hash: React.FC<HashProps> = ({
     return () => clearTimeout(timer);
   }, [copiedText]);
 
+  if (!value) {
+    return <Text variant="body2">-</Text>;
+  }
+
   return (
     <div
-      className={`inline-flex min-h-[25px] cursor-pointer items-center ${
-        !noFade && "opacity-50"
-      } hover:opacity-100`}
+      className={twJoin(
+        "inline-flex min-h-[25px] cursor-pointer items-center",
+        "hover:opacity-100 pointer-events-auto",
+        !noFade && "opacity-50",
+      )}
       onClick={handleCopy}
     >
-      <p
+      <Text
+        variant="body2"
         style={{
           minWidth: small ? "3.5rem" : "5.5rem",
         }}
-        className={`${fullWidth ? "w-full" : ""}`}
+        className={twJoin("text-primary-dark", fullWidth ? "w-full" : "")}
       >
         {copiedText || (
           <>
@@ -56,10 +68,10 @@ export const Hash: React.FC<HashProps> = ({
                 <span className="font-mono">x</span>
               </>
             )}
-            <span>{trim(value)}</span>
+            <span>{trim(value, symbols) ?? value}</span>
           </>
         )}
-      </p>
+      </Text>
       {copiedText ? (
         <IoIosCheckmarkCircle className="ml-1" />
       ) : (

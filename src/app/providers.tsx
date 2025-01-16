@@ -1,103 +1,59 @@
 "use client";
 
+import { ScrollLocker } from "@babylonlabs-io/bbn-core-ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experimental";
-import {
-  tomoBitcoin,
-  tomoBitcoinSignet,
-  TomoContextProvider,
-} from "@tomo-inc/wallet-connect-sdk";
-import { ThemeProvider, useTheme } from "next-themes";
-import React from "react";
+import { ThemeProvider } from "next-themes";
+import React, { Suspense } from "react";
 
-import { network } from "@/config/network.config";
-
+import { NotificationContainer } from "./components/Notification/NotificationContainer";
 import { ErrorProvider } from "./context/Error/ErrorContext";
-import { TermsProvider } from "./context/Terms/TermsContext";
-import { GlobalParamsProvider } from "./context/api/GlobalParamsProvider";
 import { StakingStatsProvider } from "./context/api/StakingStatsProvider";
-import { BtcHeightProvider } from "./context/mempool/BtcHeightProvider";
-
-type Theme = "dark" | "light";
-
-function App({ children }: React.PropsWithChildren) {
-  const { resolvedTheme } = useTheme();
-  /** get bitcoinChains for TomoContextProvider */
-  const bitcoinChains = [tomoBitcoin, tomoBitcoinSignet].filter(
-    (item) => item.network === network,
-  );
-
-  return (
-    <TomoContextProvider
-      bitcoinChains={bitcoinChains}
-      // chainTypes={["bitcoin"]}
-      // indexWallets={[
-      //   'bitcoin_tomo',
-      //   'bitcoin_okx',
-      //   'bitcoin_unisat',
-      //   'bitcoin_onekey',
-      //   'bitcoin_bitget',
-      //   'bitcoin_imtoken',
-      //   'bitcoin_binance',
-      // ]}
-      // connectionHints={[
-      //   {
-      //     text: 'Subject to Developer’s compliance with the terms and conditions of this Agreement',
-      //     logo: (
-      //       <img className={'tm-size-5'} src={'https://tomo.inc/favicon.ico'} />
-      //     )
-      //   },
-      //   {
-      //     text: 'I certify that there are no Bitcoin inscriptions tokens in my wallet.'
-      //   },
-      //   {
-      //     isRequired: true,
-      //     text: (
-      //       <span>
-      //         I certify that I have read and accept the updated{' '}
-      //         <a className={'tm-text-primary'}>Terms of Use</a> and{' '}
-      //         <a className={'tm-text-primary'}>Privacy Policy</a>.
-      //       </span>
-      //     )
-      //   }
-      // ]}
-      style={{
-        theme: resolvedTheme as Theme,
-        primaryColor: "#FF7C2A",
-        rounded: "small",
-      }}
-    >
-      {children}
-    </TomoContextProvider>
-  );
-}
+import { BbnRpcProvider } from "./context/rpc/BbnRpcProvider";
+import { BTCWalletProvider } from "./context/wallet/BTCWalletProvider";
+import { CosmosWalletProvider } from "./context/wallet/CosmosWalletProvider";
+import { WalletConnectionProvider } from "./context/wallet/WalletConnectionProvider";
+import { AppState } from "./state";
 
 function Providers({ children }: React.PropsWithChildren) {
   const [client] = React.useState(new QueryClient());
 
   return (
-    <ThemeProvider defaultTheme="dark" attribute="data-theme">
-      <QueryClientProvider client={client}>
-        <TermsProvider>
-          <ErrorProvider>
-            <GlobalParamsProvider>
-              <BtcHeightProvider>
-                <StakingStatsProvider>
-                  <ReactQueryStreamedHydration>
-                    <App>{children}</App>
-                  </ReactQueryStreamedHydration>
-                </StakingStatsProvider>
-              </BtcHeightProvider>
-            </GlobalParamsProvider>
-          </ErrorProvider>
-        </TermsProvider>
-        <ReactQueryDevtools
-          buttonPosition="bottom-left"
-          initialIsOpen={false}
-        />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <Suspense>
+      <ScrollLocker>
+        <ThemeProvider
+          defaultTheme="light"
+          enableSystem={false}
+          attribute="data-theme"
+        >
+          <QueryClientProvider client={client}>
+            <ErrorProvider>
+              <BbnRpcProvider>
+                <WalletConnectionProvider>
+                  <BTCWalletProvider>
+                    <CosmosWalletProvider>
+                      <AppState>
+                        <StakingStatsProvider>
+                          <ReactQueryStreamedHydration>
+                            {children}
+                          </ReactQueryStreamedHydration>
+                        </StakingStatsProvider>
+                      </AppState>
+                    </CosmosWalletProvider>
+                  </BTCWalletProvider>
+                </WalletConnectionProvider>
+              </BbnRpcProvider>
+            </ErrorProvider>
+            <ReactQueryDevtools
+              buttonPosition="bottom-left"
+              initialIsOpen={false}
+            />
+          </QueryClientProvider>
+          <NotificationContainer />
+        </ThemeProvider>
+      </ScrollLocker>
+    </Suspense>
   );
 }
 

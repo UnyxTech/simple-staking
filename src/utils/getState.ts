@@ -1,12 +1,13 @@
 import { DelegationState } from "@/app/types/delegations";
+import { getNetworkConfigBBN } from "@/config/network/bbn";
 
-import { blocksToDisplayTime } from "./blocksToDisplayTime";
+const { networkFullName: bbnNetworkFullName } = getNetworkConfigBBN();
 
 // Convert state to human readable format
 export const getState = (state: string) => {
   switch (state) {
     case DelegationState.ACTIVE:
-      return "Active";
+      return "Pending Registration";
     case DelegationState.UNBONDING_REQUESTED:
       return "Unbonding Requested";
     case DelegationState.UNBONDING:
@@ -26,29 +27,26 @@ export const getState = (state: string) => {
       return "Requesting Unbonding";
     case DelegationState.INTERMEDIATE_WITHDRAWAL:
       return "Withdrawal Submitted";
+    case DelegationState.INTERMEDIATE_TRANSITIONING:
+      return "Transitioning";
+    case DelegationState.TRANSITIONED:
+      return "Transitioned";
     default:
       return "Unknown";
   }
 };
 
 // Create state tooltips for the additional information
-export const getStateTooltip = (
-  state: string,
-  params?: { confirmationDepth: number; unbondingTime: number },
-) => {
+export const getStateTooltip = (state: string) => {
   switch (state) {
     case DelegationState.ACTIVE:
-      return "Stake is active";
+      return "Stake is pending registration to the Babylon chain";
     case DelegationState.UNBONDING_REQUESTED:
-      return "Unbonding requested";
-    case DelegationState.UNBONDING:
-      return `Unbonding process of ${blocksToDisplayTime(params?.unbondingTime)} has started`;
+      return "Stake is requesting unbonding";
     case DelegationState.UNBONDED:
       return "Stake has been unbonded";
     case DelegationState.WITHDRAWN:
       return "Stake has been withdrawn";
-    case DelegationState.PENDING:
-      return `Stake that is pending ${params?.confirmationDepth || 10} Bitcoin confirmations will only be visible from this device`;
     case DelegationState.OVERFLOW:
       return "Stake is over the staking cap";
     case DelegationState.EXPIRED:
@@ -58,6 +56,10 @@ export const getStateTooltip = (
       return "Stake is requesting unbonding";
     case DelegationState.INTERMEDIATE_WITHDRAWAL:
       return "Withdrawal transaction pending confirmation on Bitcoin";
+    case DelegationState.INTERMEDIATE_TRANSITIONING:
+      return `Stake is transitioning to the ${bbnNetworkFullName} network`;
+    case DelegationState.TRANSITIONED:
+      return `Stake has been transitioned to the ${bbnNetworkFullName} network`;
     default:
       return "Unknown";
   }

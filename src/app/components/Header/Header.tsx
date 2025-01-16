@@ -1,54 +1,23 @@
-import { ConnectSmall } from "../Connect/ConnectSmall";
-import { ConnectedSmall } from "../Connect/ConnectedSmall";
-import { TestingInfo } from "../TestingInfo/TestingInfo";
-import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
+import { useWalletConnect } from "@babylonlabs-io/bbn-wallet-connect";
 
-import { Logo } from "./Logo";
+import { Container } from "@/app/components/Container/Container";
+import { useAppState } from "@/app/state";
 
-interface HeaderProps {
-  onConnect: () => void;
-  address: string;
-  balanceSat: number;
-  onDisconnect: () => void;
-}
+import { Logo } from "../Logo/Logo";
+import { Connect } from "../Wallet/Connect";
 
-export const Header: React.FC<HeaderProps> = ({
-  onConnect,
-  address,
-  balanceSat,
-  onDisconnect,
-}) => {
+export const Header = () => {
+  const { open } = useWalletConnect();
+  const { isLoading: loading } = useAppState();
+
   return (
-    <nav>
-      <div className="bg-base-300 shadow-sm">
-        <div className="container mx-auto flex w-full items-center justify-between gap-4 p-6 pb-4 md:pb-6">
-          <Logo />
-          <div className="flex flex-1">
-            <div className="hidden flex-1 xl:flex">
-              <TestingInfo />
-            </div>
-          </div>
-          <ConnectSmall
-            onConnect={onConnect}
-            address={address}
-            balanceSat={balanceSat}
-            onDisconnect={onDisconnect}
-          />
-          <ThemeToggle />
+    <header className="bg-primary-main h-[18.75rem]">
+      <Container className="h-20 flex items-center justify-between">
+        <Logo />
+        <div className="flex items-center gap-4">
+          <Connect loading={loading} onConnect={open} />
         </div>
-        <div
-          className={`container mx-auto flex w-full items-center gap-4 ${address ? "justify-end p-6 pt-0" : ""} md:hidden md:p-0`}
-        >
-          <ConnectedSmall
-            address={address}
-            balanceSat={balanceSat}
-            onDisconnect={onDisconnect}
-          />
-        </div>
-      </div>
-      <div className="container mx-auto flex w-full items-center p-6 pb-0 xl:hidden">
-        <TestingInfo />
-      </div>
-    </nav>
+      </Container>
+    </header>
   );
 };

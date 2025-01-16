@@ -9,6 +9,8 @@ export const isStakingSignReady = (
   amount: number,
   time: number,
   fpSelected: boolean,
+  stakingFeeSat: number,
+  bbnBalance: number,
 ): { isReady: boolean; reason: string } => {
   if (!fpSelected)
     return {
@@ -38,6 +40,18 @@ export const isStakingSignReady = (
     return {
       isReady: false,
       reason: "Please enter a valid staking period",
+    };
+  } else if (stakingFeeSat === 0) {
+    // This is a temporary solution when the fee is not calculated or throw an error
+    // the staking fee is set to 0 by stakingFeeSat from staking.tsx
+    return {
+      isReady: false,
+      reason: "Not enough funds to cover fees for staking",
+    };
+  } else if (bbnBalance === 0) {
+    return {
+      isReady: false,
+      reason: "Insufficient BABY Balance in Babylon Wallet",
     };
   }
   return {

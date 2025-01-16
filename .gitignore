@@ -175,6 +175,7 @@ dist
 .svelte-kit
 
 ### VisualStudioCode ###
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -182,7 +183,7 @@ dist
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
-.idea/
+.idea
 
 # Local History for Visual Studio Code
 .history/
@@ -261,3 +262,13 @@ yarn-error.log*
 next-env.d.ts
 
 .env
+
+# E2E Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# E2E Chrome Extensions
+extensions
+

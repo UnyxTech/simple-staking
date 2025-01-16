@@ -1,12 +1,23 @@
+@import "react-responsive-modal/styles.css";
+@import "react-tooltip/dist/react-tooltip.css";
+@import "react-toastify/dist/ReactToastify.css";
+@import "@babylonlabs-io/bbn-core-ui/dist/style.css";
+@import "@babylonlabs-io/bbn-wallet-connect/dist/style.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("styles/terms.css");
-
 :root {
   --primary: #ff7c2a;
   --secondary: "#0DB7BF";
+  --toastify-toast-width: 344px;
+}
+
+@media screen and (min-width: 768px) {
+  :root {
+    --toastify-toast-width: 671px;
+  }
 }
 
 /* disable number input arrows */
@@ -77,26 +88,6 @@ input[type="number"] {
   width: 1px !important;
 }
 
-[data-theme="dark"] .main-app-mainnet {
-  background: rgb(43, 43, 43) url("./assets/bg-pattern.svg") left top/auto
-    repeat;
-}
-
-[data-theme="light"] .main-app-mainnet {
-  background: rgb(236, 236, 236) url("./assets/bg-pattern.svg") left top/auto
-    repeat;
-}
-
-[data-theme="dark"] .main-app-testnet {
-  background: rgb(43, 43, 43) url("./assets/testnet-bg-pattern.svg") left
-    top/auto repeat;
-}
-
-[data-theme="light"] .main-app-testnet {
-  background: rgb(236, 236, 236) url("./assets/testnet-bg-pattern.svg") left
-    top/auto repeat;
-}
-
 [data-theme="dark"] .react-responsive-modal-modal {
   background-color: #1e1e1e;
   color: #fff;
@@ -109,4 +100,138 @@ input[type="number"] {
 
 body.modal-open {
   overflow: hidden;
+}
+
+.tooltip-wrap {
+  max-width: 25rem;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.tooltip-wrap[data-popper-placement*="top"] .tooltip-arrow {
+  @apply border-t-neutral-800;
+}
+
+.tooltip-wrap[data-popper-placement*="bottom"] .tooltip-arrow {
+  @apply border-b-neutral-800;
+}
+
+.tooltip-wrap[data-popper-placement*="left"] .tooltip-arrow {
+  @apply border-l-neutral-800;
+}
+
+.tooltip-wrap[data-popper-placement*="right"] .tooltip-arrow {
+  @apply border-r-neutral-800;
+}
+
+body > .tomo-social {
+  z-index: 100 !important;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Black.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Black.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Black.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Black.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Bold.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Bold.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Bold.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Regular.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Regular.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Regular.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Light.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Light.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Light.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Thin.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Thin.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Thin.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Thin.woff") format("woff");
+  font-weight: 250;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk";
+  src: url("/fonts/Px-Grotesk/Px-Grotesk-Screen.eot");
+  src:
+    url("/fonts/Px-Grotesk/Px-Grotesk-Screen.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Screen.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk/Px-Grotesk-Screen.woff") format("woff");
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk Mono";
+  src: url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Light.eot");
+  src:
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Light.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Light.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk Mono";
+  src: url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Regular.eot");
+  src:
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Regular.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Regular.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Px Grotesk Mono";
+  src: url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Bold.eot");
+  src:
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Bold.eot?#iefix")
+      format("embedded-opentype"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Bold.woff2") format("woff2"),
+    url("/fonts/Px-Grotesk-Mono/Px-Grotesk-Mono-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
 }

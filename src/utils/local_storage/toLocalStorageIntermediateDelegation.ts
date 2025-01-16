@@ -22,5 +22,6 @@ export const toLocalStorageIntermediateDelegation = (
     timelock,
   },
   isOverflow: false,
+  isEligibleForTransition: false,
   unbondingTx: undefined,
 });

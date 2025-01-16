@@ -4,12 +4,12 @@ export enum ErrorState {
   WALLET = "WALLET",
   WITHDRAW = "WITHDRAW",
   STAKING = "STAKING",
+  TRANSITION = "TRANSITION",
 }
 
 export interface ErrorType {
   message: string;
   errorState?: ErrorState;
-  errorTime: Date;
 }
 
 export interface ErrorHandlerParam {
@@ -22,4 +22,5 @@ export interface ErrorHandlerParam {
 export interface ShowErrorParams {
   error: ErrorType;
   retryAction?: () => void;
+  noCancel?: boolean;
 }

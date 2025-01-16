@@ -1,10 +1,16 @@
-import { format } from "date-fns";
-import { IoMdClose } from "react-icons/io";
+import {
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  Heading,
+  MobileDialog,
+  Text,
+} from "@babylonlabs-io/bbn-core-ui";
+import { MdOutlineSwapHoriz } from "react-icons/md";
 
 import { useError } from "@/app/context/Error/ErrorContext";
+import { useIsMobileView } from "@/app/hooks/useBreakpoint";
 import { ErrorState, ShowErrorParams } from "@/app/types/errors";
-
-import { GeneralModal } from "./GeneralModal";
 
 interface ErrorModalProps {
   open: boolean;
@@ -12,7 +18,7 @@ interface ErrorModalProps {
   onRetry?: () => void;
   errorMessage: string;
   errorState?: ErrorState;
-  errorTime: Date;
+  noCancel?: boolean;
 }
 
 export const ErrorModal: React.FC<ErrorModalProps> = ({
@@ -21,8 +27,10 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
   onRetry,
   errorMessage,
   errorState,
-  errorTime,
+  noCancel,
 }) => {
+  const isMobileView = useIsMobileView();
+  const DialogComponent = isMobileView ? MobileDialog : Dialog;
   const { error, retryErrorAction } = useError();
 
   const handleRetry = () => {
@@ -30,7 +38,6 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
       error: {
         message: error.message,
         errorState: error.errorState,
-        errorTime: new Date(),
       },
       retryAction: retryErrorAction,
     };
@@ -66,7 +73,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
       case ErrorState.SERVER_ERROR:
         return `Error fetching data due to: ${errorMessage}`;
       case ErrorState.UNBONDING:
-        return `Your request to unbound failed due to: ${errorMessage}`;
+        return `Your request to unbond failed due to: ${errorMessage}`;
       case ErrorState.WITHDRAW:
         return `Failed to withdraw due to: ${errorMessage}`;
       case ErrorState.STAKING:
@@ -78,41 +85,39 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
     }
   };
 
-  const formattedErrorTime = format(errorTime, "dd MMMM yyyy 'at' HH:mm:ss");
-
   return (
-    <GeneralModal open={open} onClose={onClose}>
-      <div className="mb- flex items-center justify-end">
-        <button
-          className="btn btn-circle btn-ghost btn-sm"
-          onClick={() => onClose()}
-        >
-          <IoMdClose size={24} />
-        </button>
-      </div>
-      <div className="flex flex-col justify-center gap-4">
-        <h3 className="text-center font-bold text-error">{getErrorTitle()}</h3>
-        <div className="flex flex-col gap-3">
-          <p className="text-center">{getErrorMessage()}</p>
-          <p className="text-center text-xs opacity-50">{formattedErrorTime}</p>
+    <DialogComponent open={open} onClose={onClose}>
+      <DialogBody className="flex flex-col pb-8 pt-4 text-primary-dark gap-4 items-center justify-center">
+        <div className="bg-primary-contrast h-20 w-20 flex items-center justify-center">
+          <MdOutlineSwapHoriz className="text-5xl" />
         </div>
-        <div className="mt-4 flex justify-around gap-4">
+        <Heading variant="h3" className="text-center font-bold text-error">
+          {getErrorTitle()}
+        </Heading>
+        <div className="flex flex-col gap-3">
+          <Text variant="body1" className="text-center">
+            {getErrorMessage()}
+          </Text>
+        </div>
+      </DialogBody>
+      <DialogFooter className="mt-4 flex justify-around gap-4">
+        {!noCancel && ( // Only show the cancel button if noCancel is false or undefined
           <button
             className="btn btn-outline flex-1 rounded-lg px-2"
             onClick={() => onClose()}
           >
             Cancel
           </button>
-          {onRetry && (
-            <button
-              className="btn-primary btn flex-1 rounded-lg px-2 text-white"
-              onClick={handleRetry}
-            >
-              Try Again
-            </button>
-          )}
-        </div>
-      </div>
-    </GeneralModal>
+        )}
+        {onRetry && (
+          <button
+            className="btn-primary btn flex-1 rounded-lg px-2 text-white"
+            onClick={handleRetry}
+          >
+            Try Again
+          </button>
+        )}
+      </DialogFooter>
+    </DialogComponent>
   );
 };

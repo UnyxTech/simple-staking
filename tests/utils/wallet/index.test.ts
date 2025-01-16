@@ -1,12 +1,12 @@
 import { networks } from "bitcoinjs-lib";
 
+import { Network } from "@/app/types/network";
 import {
   getPublicKeyNoCoord,
   isSupportedAddressType,
   isTaproot,
   toNetwork,
 } from "@/utils/wallet";
-import { Network } from "@/utils/wallet/wallet_provider";
 
 import { testingNetworks } from "../../helper";
 

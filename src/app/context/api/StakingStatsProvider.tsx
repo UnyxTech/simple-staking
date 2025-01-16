@@ -35,7 +35,7 @@ const StakingStatsContext =
 export const StakingStatsProvider: React.FC<StakingStatsProviderProps> = ({
   children,
 }) => {
-  const { isErrorOpen, showError } = useError();
+  const { isErrorOpen, showError, captureError } = useError();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["API_STATS"],
     queryFn: async () => getStats(),
@@ -51,12 +51,12 @@ export const StakingStatsProvider: React.FC<StakingStatsProviderProps> = ({
         error: {
           message: error.message,
           errorState: ErrorState.SERVER_ERROR,
-          errorTime: new Date(),
         },
         retryAction: refetch,
       });
+      captureError(error);
     }
-  }, [isError, error, showError, refetch]);
+  }, [isError, error, showError, refetch, captureError]);
 
   return (
     <StakingStatsContext.Provider value={{ data, isLoading }}>

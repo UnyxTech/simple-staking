@@ -1,16 +1,17 @@
-import { getNetworkConfig } from "@/config/network.config";
+import { Section as SectionContainer } from "@/app/components/Section/Section";
+import { getNetworkConfigBTC } from "@/config/network/btc";
 
-import { Section } from "./Section";
 import { questions } from "./data/questions";
+import { Section } from "./Section";
 
 interface FAQProps {}
 
 export const FAQ: React.FC<FAQProps> = () => {
-  const { coinName } = getNetworkConfig();
+  const { coinName } = getNetworkConfigBTC();
+
   return (
-    <div className="container mx-auto flex flex-col gap-2 p-6">
-      <h3 className="mb-4 font-bold">FAQ</h3>
-      <div className="flex flex-col gap-4">
+    <SectionContainer title="FAQ’s">
+      <div className="flex flex-col gap-4 bg-warning-contrast border border-primary-light/20 rounded divide-y p-6">
         {questions(coinName).map((question) => (
           <Section
             key={question.title}
@@ -19,6 +20,6 @@ export const FAQ: React.FC<FAQProps> = () => {
           />
         ))}
       </div>
-    </div>
+    </SectionContainer>
   );
 };

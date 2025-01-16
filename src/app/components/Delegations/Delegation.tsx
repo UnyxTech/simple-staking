@@ -1,162 +1,209 @@
 import { useEffect, useState } from "react";
-import { AiOutlineInfoCircle } from "react-icons/ai";
-import { IoIosWarning } from "react-icons/io";
-import { Tooltip } from "react-tooltip";
+import { FaBitcoin } from "react-icons/fa";
 
-import { DelegationState, StakingTx } from "@/app/types/delegations";
-import { GlobalParamsVersion } from "@/app/types/globalParams";
-import { getNetworkConfig } from "@/config/network.config";
-import { satoshiToBtc } from "@/utils/btcConversions";
-import { durationTillNow } from "@/utils/formatTime";
+import { DelegationActions } from "@/app/components/Delegations/DelegationActions";
+import { RegistrationEndModal } from "@/app/components/Modals/RegistrationModal/RegistrationEndModal";
+import { RegistrationStartModal } from "@/app/components/Modals/RegistrationModal/RegistrationStartModal";
+import { SignModal } from "@/app/components/Modals/SignModal/SignModal";
+import { ONE_MINUTE } from "@/app/constants";
+import { useRegistrationService } from "@/app/hooks/services/useRegistrationService";
+import { useDelegationState } from "@/app/state/DelegationState";
+import { useFinalityProviderState } from "@/app/state/FinalityProviderState";
+import {
+  type Delegation as DelegationInterface,
+  DelegationState,
+} from "@/app/types/delegations";
+import { getNetworkConfigBTC } from "@/config/network/btc";
+import { satoshiToBtc } from "@/utils/btc";
 import { getState, getStateTooltip } from "@/utils/getState";
 import { maxDecimals } from "@/utils/maxDecimals";
+import { durationTillNow } from "@/utils/time";
 import { trim } from "@/utils/trim";
 
+import { VerificationModal } from "../Modals/VerificationModal";
+
+import { DelegationCell } from "./components/DelegationCell";
+import { DelegationStatus } from "./components/DelegationStatus";
+
 interface DelegationProps {
-  finalityProviderMoniker: string;
-  stakingTx: StakingTx;
-  stakingValueSat: number;
-  stakingTxHash: string;
-  state: string;
-  onUnbond: (id: string) => void;
+  delegation: DelegationInterface;
   onWithdraw: (id: string) => void;
+  onUnbond: (id: string) => void;
   // This attribute is set when an action has been taken by the user
   // that should change the status but the back-end
   // has not had time to reflect this change yet
   intermediateState?: string;
-  isOverflow: boolean;
-  globalParamsVersion: GlobalParamsVersion;
 }
 
+// step index
+const REGISTRATION_INDEXES: Record<string, number> = {
+  "registration-staking-slashing": 1,
+  "registration-unbonding-slashing": 2,
+  "registration-proof-of-possession": 3,
+  "registration-sign-bbn": 4,
+};
+
+const VERIFICATION_STEPS: Record<string, 1 | 2> = {
+  "registration-send-bbn": 1,
+  "registration-verifying": 2,
+};
+
 export const Delegation: React.FC<DelegationProps> = ({
-  stakingTx,
-  stakingTxHash,
-  state,
-  stakingValueSat,
-  onUnbond,
+  delegation,
   onWithdraw,
+  onUnbond,
   intermediateState,
-  isOverflow,
-  globalParamsVersion,
 }) => {
+  const {
+    stakingTx,
+    stakingTxHashHex,
+    state,
+    stakingValueSat,
+    isOverflow,
+    finalityProviderPkHex,
+    isEligibleForTransition,
+  } = delegation;
+
   const { startTimestamp } = stakingTx;
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const {
+    processing,
+    registrationStep: step,
+    setRegistrationStep: setStep,
+    setSelectedDelegation,
+    resetRegistration: handleCloseRegistration,
+  } = useDelegationState();
+  const { registerPhase1Delegation } = useRegistrationService();
+  const { getFinalityProvider } = useFinalityProviderState();
+  const { coinName, mempoolApiUrl } = getNetworkConfigBTC();
 
   useEffect(() => {
-    const timerId = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 60000); // set the refresh interval to 60 seconds
-
+    const timerId = setInterval(() => setCurrentTime(Date.now()), ONE_MINUTE);
     return () => clearInterval(timerId);
   }, []);
 
-  const generateActionButton = () => {
-    // This function generates the unbond or withdraw button
-    // based on the state of the delegation
-    // It also disables the button if the delegation
-    // is in an intermediate state (local storage)
-    if (state === DelegationState.ACTIVE) {
-      return (
-        <div className="flex justify-end lg:justify-start">
-          <button
-            className="btn btn-outline btn-xs inline-flex text-sm font-normal text-primary"
-            onClick={() => onUnbond(stakingTxHash)}
-            disabled={
-              intermediateState === DelegationState.INTERMEDIATE_UNBONDING
-            }
-          >
-            Unbond
-          </button>
-        </div>
-      );
-    } else if (state === DelegationState.UNBONDED) {
-      return (
-        <div className="flex justify-end lg:justify-start">
-          <button
-            className="btn btn-outline btn-xs inline-flex text-sm font-normal text-primary"
-            onClick={() => onWithdraw(stakingTxHash)}
-            disabled={
-              intermediateState === DelegationState.INTERMEDIATE_WITHDRAWAL
-            }
-          >
-            Withdraw
-          </button>
-        </div>
-      );
-    } else {
-      return null;
-    }
+  const onRegistration = async () => {
+    setSelectedDelegation(delegation);
+    setStep("registration-start");
+  };
+
+  const handleProceed = async () => {
+    await registerPhase1Delegation();
   };
 
   const isActive =
     intermediateState === DelegationState.ACTIVE ||
     state === DelegationState.ACTIVE;
+  const displayState =
+    isOverflow && isActive
+      ? DelegationState.OVERFLOW
+      : intermediateState || state;
 
-  const renderState = () => {
-    // overflow should be shown only on active state
-    if (isOverflow && isActive) {
-      return getState(DelegationState.OVERFLOW);
-    } else {
-      return getState(intermediateState || state);
-    }
-  };
-
+  const renderState = () => getState(displayState);
   const renderStateTooltip = () => {
-    // overflow should be shown only on active state
-    if (isOverflow && isActive) {
-      return getStateTooltip(DelegationState.OVERFLOW, globalParamsVersion);
-    } else {
-      return getStateTooltip(intermediateState || state, globalParamsVersion);
+    // overflow state to override the tooltip
+    if (isOverflow) {
+      return "Stake is over the staking cap";
     }
+    return getStateTooltip(displayState);
   };
-
-  const { coinName, mempoolApiUrl } = getNetworkConfig();
 
   return (
-    <div
-      className={`card relative border bg-base-300 p-4 text-sm dark:bg-base-200 ${isOverflow ? "border-primary" : "dark:border-0"}`}
-    >
-      {isOverflow && (
-        <div className="absolute -top-1 right-1/2 flex translate-x-1/2 items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs text-white lg:right-2 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0">
-          <IoIosWarning size={16} />
-          <p>overflow</p>
-        </div>
-      )}
-      <div className="grid grid-flow-col grid-cols-2 grid-rows-2 items-center gap-2 lg:grid-flow-row lg:grid-cols-5 lg:grid-rows-1">
-        <p>
-          {maxDecimals(satoshiToBtc(stakingValueSat), 8)} {coinName}
-        </p>
-        <p>{durationTillNow(startTimestamp, currentTime)}</p>
-        <div className="hidden justify-center lg:flex">
-          <a
-            href={`${mempoolApiUrl}/tx/${stakingTxHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
+    <>
+      <div className="relative h-[120px] lg:h-[72px] rounded bg-secondary-contrast odd:bg-[#F9F9F9] p-4 text-sm text-primary-dark">
+        <div className="h-full grid grid-flow-col grid-cols-2 grid-rows-3 items-center gap-2 lg:grid-flow-row lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:grid-rows-1">
+          <DelegationCell order="order-3 lg:order-1" className="pt-6 lg:pt-0">
+            {durationTillNow(startTimestamp, currentTime)}
+          </DelegationCell>
+
+          <DelegationCell
+            order="order-4 lg:order-2"
+            className="pt-6 lg:pt-0 text-right lg:text-left"
           >
-            {trim(stakingTxHash)}
-          </a>
-        </div>
-        {/*
-        we need to center the text without the tooltip
-        add its size 12px and gap 4px, 16/2 = 8px
-        */}
-        <div className="relative flex justify-end lg:left-[8px] lg:justify-center">
-          <div className="flex items-center gap-1">
-            <p>{renderState()}</p>
-            <span
-              className="cursor-pointer text-xs"
-              data-tooltip-id={`tooltip-${stakingTxHash}`}
-              data-tooltip-content={renderStateTooltip()}
-              data-tooltip-place="top"
+            {getFinalityProvider(finalityProviderPkHex)?.description?.moniker ??
+              "-"}
+          </DelegationCell>
+
+          <DelegationCell
+            order="order-1 lg:order-3"
+            className="flex gap-1 items-center"
+          >
+            <FaBitcoin className="text-primary" />
+            <p>
+              {maxDecimals(satoshiToBtc(stakingValueSat), 8)} {coinName}
+            </p>
+          </DelegationCell>
+
+          <DelegationCell
+            order="order-2 lg:order-4"
+            className="justify-start lg:flex"
+          >
+            <a
+              href={`${mempoolApiUrl}/tx/${stakingTxHashHex}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
             >
-              <AiOutlineInfoCircle />
-            </span>
-            <Tooltip id={`tooltip-${stakingTxHash}`} />
-          </div>
+              {trim(stakingTxHashHex)}
+            </a>
+          </DelegationCell>
+          {/*
+          we need to center the text without the tooltip
+          add its size 12px and gap 4px, 16/2 = 8px
+          */}
+          <DelegationCell
+            order="order-5"
+            className="relative flex justify-end lg:justify-start"
+          >
+            <DelegationStatus
+              state={renderState()}
+              tooltip={renderStateTooltip()}
+              stakingTxHashHex={stakingTxHashHex}
+              isOverflow={isOverflow && isActive}
+            />
+          </DelegationCell>
+
+          <DelegationCell order="order-6">
+            <DelegationActions
+              state={state}
+              intermediateState={intermediateState}
+              isEligibleForRegistration={isEligibleForTransition}
+              stakingTxHashHex={stakingTxHashHex}
+              onRegistration={onRegistration}
+              onUnbond={onUnbond}
+              onWithdraw={onWithdraw}
+            />
+          </DelegationCell>
         </div>
-        {generateActionButton()}
       </div>
-    </div>
+
+      <RegistrationStartModal
+        open={step === "registration-start"}
+        onClose={handleCloseRegistration}
+        onProceed={handleProceed}
+      />
+
+      {step && Boolean(REGISTRATION_INDEXES[step]) && (
+        <SignModal
+          open
+          title="Transition to Phase 2"
+          step={REGISTRATION_INDEXES[step]}
+          processing={processing}
+        />
+      )}
+
+      {step && Boolean(VERIFICATION_STEPS[step]) && (
+        <VerificationModal
+          open
+          processing={processing}
+          step={VERIFICATION_STEPS[step]}
+        />
+      )}
+
+      <RegistrationEndModal
+        open={step === "registration-verified"}
+        onClose={handleCloseRegistration}
+      />
+    </>
   );
 };
