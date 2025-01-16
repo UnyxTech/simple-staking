@@ -19,10 +19,14 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "preinstall": "npx npm-force-resolutions"
   },
   "engines": {
     "node": "22.3.0"
+  },
+  "resolutions": {
+    "@tomo-inc/tomo-wallet-provider": "1.1.7"
   },
   "dependencies": {
     "@babylonlabs-io/babylon-proto-ts": "0.0.3-canary.5",
@@ -36,8 +40,7 @@
     "@sentry/nextjs": "^8.30.0",
     "@tanstack/react-query": "^5.28.14",
     "@tanstack/react-query-next-experimental": "^5.28.14",
-    "@tomo-inc/wallet-connect-sdk": "^0.3.9",
-    "@tomo-inc/tomo-wallet-provider": "^1.1.7",
+    "@tomo-inc/wallet-connect-sdk": "^0.3.10",
     "@uidotdev/usehooks": "^2.4.1",
     "axios": "^1.7.4",
     "bitcoinjs-lib": "6.1.5",
@@ -89,6 +92,7 @@
     "husky": "^9.0.11",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "npm-force-resolutions": "^0.0.10",
     "postcss": "^8",
     "postcss-import": "^16.1.0",
     "prettier": "^3.2.5",
