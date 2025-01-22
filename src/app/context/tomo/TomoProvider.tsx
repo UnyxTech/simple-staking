@@ -43,6 +43,7 @@ export const TomoConnectionProvider = ({ children }: PropsWithChildren) => {
       bitcoinChains={[bitcoinChain]}
       chainTypes={["bitcoin", "cosmos"]}
       cosmosChains={[cosmosChain]}
+      // @ts-ignore
       additionalWallets={[xverseBTCWalletOption]}
       style={{
         rounded: "medium",
