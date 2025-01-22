@@ -17,7 +17,11 @@ const createProvider = (provider: BTCProvider): IBTCProvider => {
   return {
     connectWallet: async () => void provider.connectWallet(),
     getAddress: () => provider.getAddress(),
-    getPublicKeyHex: () => provider.getPublicKeyHex(),
+    getPublicKeyHex: async () => {
+      const publicKey = await provider.getPublicKeyHex();
+      console.log("getPublicKeyHex", publicKey);
+      return publicKey;
+    },
     signPsbt: (psbtHex: string) => provider.signPsbt(psbtHex),
     signPsbts: (psbtsHexes: string[]) => provider.signPsbts(psbtsHexes),
     getNetwork: () => provider.getNetwork(),
@@ -62,7 +66,7 @@ export const TomoBTCConnector = memo(() => {
   const connect = useCallback(
     async (btcWallet: any, btcProvider: BTCProvider) => {
       if (!connector) return;
-
+      console.log("Connecting to Tomo BTC wallet...");
       const wallet = createExternalWallet({
         id: "tomo-btc-connector",
         name: btcWallet.name,
@@ -80,7 +84,9 @@ export const TomoBTCConnector = memo(() => {
       connect(connectedWallet, connectedProvider);
     }
   }, [visible, connectedWallet, connectedProvider, connect]);
-
+  useEffect(() => {
+    console.log("Tomo BTC Connector mounted>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  }, [connectedWallet, connectedProvider, connect]);
   useEffect(() => {
     if (!connector) return;
 

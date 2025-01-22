@@ -5,6 +5,7 @@ import { type PropsWithChildren } from "react";
 
 import { getNetworkConfigBBN } from "@/config/network/bbn";
 import { getNetworkConfigBTC } from "@/config/network/btc";
+import { xverseBTCWalletOption } from "@/otherTest/xverse/XverseBTCWallet";
 
 type ChainType = "bitcoin" | "cosmos";
 type ThemeType = "dark" | "light";
@@ -42,6 +43,7 @@ export const TomoConnectionProvider = ({ children }: PropsWithChildren) => {
       bitcoinChains={[bitcoinChain]}
       chainTypes={["bitcoin", "cosmos"]}
       cosmosChains={[cosmosChain]}
+      additionalWallets={[xverseBTCWalletOption]}
       style={{
         rounded: "medium",
         theme: resolvedTheme as ThemeType,
