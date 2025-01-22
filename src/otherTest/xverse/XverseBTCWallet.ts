@@ -63,7 +63,10 @@ export class XverseBTCWallet extends BTCProvider {
   async getPublicKeyHex(): Promise<string> {
     const info = await this.getConnectionInfo();
     console.log("getPublicKeyHex", info.publicKey, info);
-    return "03" + info.publicKey;
+    if (info.publicKey.length === 64) {
+      return "03" + info.publicKey;
+    }
+    return info.publicKey;
   }
 
   async switchNetwork(network: Network) {
