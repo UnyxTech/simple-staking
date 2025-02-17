@@ -23,7 +23,7 @@ export const ConnectButton = ({
 
   const open = useCallback(async () => {
     const result = await tomoModal.open(chainName);
-
+    console.log("open result", result);
     if (!result) {
       displayWallets?.(CHAINS[chainName]);
     }

@@ -127,6 +127,7 @@ export function StakingState({ children }: PropsWithChildren) {
     isError: isStateError,
     isLoading: isStateLoading,
   } = useAppState();
+  console.log("networkInfo", networkInfo, stakableBtcBalance);
   const {
     isApiNormal,
     isGeoBlocked,

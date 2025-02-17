@@ -1764,7 +1764,7 @@
     jsbi "^3.1.5"
     sha.js "^2.4.11"
 
-"@noble/curves@^1.7.0", "@noble/curves@~1.8.0":
+"@noble/curves@^1.7.0", "@noble/curves@~1.4.0", "@noble/curves@~1.8.0":
   version "1.8.0"
   resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.8.0.tgz"
   integrity sha512-j84kjAbzEnQHaSIhRPUmB3/eVXu2k3dKPl2LOrR8fSOIL+89U+7lV117EWHtq/GHM3ReGHM46iRBdZfpc4HRUQ==
@@ -1778,7 +1778,7 @@
   dependencies:
     "@noble/hashes" "1.3.3"
 
-"@noble/curves@~1.4.0", "@noble/curves@1.4.2":
+"@noble/curves@1.4.2":
   version "1.4.2"
   resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.4.2.tgz"
   integrity sha512-TavHr8qycMChk8UwMld0ZDRvatedkzWfH8IiaeGCfymOP5i0hSCozz9vHOL0nkwk7HRMlFnAiKpS2jrUmSybcw==
@@ -2583,30 +2583,21 @@
   dependencies:
     "@babel/runtime" "^7.12.5"
 
-"@tomo-inc/tomo-wallet-provider@1.1.6":
-  version "1.1.6"
-  resolved "https://registry.npmmirror.com/@tomo-inc/tomo-wallet-provider/-/tomo-wallet-provider-1.1.6.tgz"
-  integrity sha512-DZKYpMlTzY9qI3kCFs+Rc2JLEgrxrSrPexdjfVvcDoitcoE/pPpLZgW34BhbaE/VdFfeL0vqTXS3iqZ0LpPFUg==
+"@tomo-inc/tomo-wallet-provider@1.1.8":
+  version "1.1.8"
+  resolved "https://registry.npmmirror.com/@tomo-inc/tomo-wallet-provider/-/tomo-wallet-provider-1.1.8.tgz"
+  integrity sha512-mIvYOab2bQzjamk4oRZzJm6OOMbLMJHe0DZPZJ6ZQyl26myZ2djYU35+yXkxptMtqR8Zw9wcXolEPhxMSWQl5A==
   dependencies:
     buffer "^6.0.3"
     events "^3.3.0"
     long "^5.2.3"
 
-"@tomo-inc/tomo-wallet-provider@1.1.7":
-  version "1.1.7"
-  resolved "https://registry.npmmirror.com/@tomo-inc/tomo-wallet-provider/-/tomo-wallet-provider-1.1.7.tgz"
-  integrity sha512-0V1zQcZY1c4bXm++vy9ujsMUFAt0WqO7k/+HKnuafZ3nzxGDBB50Cml/Sa7Du3IhlXgGiJk709uETDydkXuDUA==
+"@tomo-inc/wallet-connect-sdk@^0.3.11":
+  version "0.3.11"
+  resolved "https://registry.npmmirror.com/@tomo-inc/wallet-connect-sdk/-/wallet-connect-sdk-0.3.11.tgz"
+  integrity sha512-S55kdSlGvw+4y0UZtzeztrTmGlXAgjxWFv8ZC60eP06xADnF9BZfJBlQ9Lk42Z+WZJfy14VW9N5DKviTCPrz8w==
   dependencies:
-    buffer "^6.0.3"
-    events "^3.3.0"
-    long "^5.2.3"
-
-"@tomo-inc/wallet-connect-sdk@^0.3.10":
-  version "0.3.10"
-  resolved "https://registry.npmmirror.com/@tomo-inc/wallet-connect-sdk/-/wallet-connect-sdk-0.3.10.tgz"
-  integrity sha512-na8AwSYa9ZH4o70yUao0Dd1srvh+HA843Bcv0J/ZySXvIusIFOFK7ok5N6lXj9qqEjaZ+qTjvi+nRP141QUU8w==
-  dependencies:
-    "@tomo-inc/tomo-wallet-provider" "1.1.6"
+    "@tomo-inc/tomo-wallet-provider" "1.1.8"
     animate.css "^4.1.1"
     buffer "^6.0.3"
     classnames "^2.5.1"
@@ -3201,7 +3192,7 @@ ajv-keywords@^5.1.0:
   dependencies:
     fast-deep-equal "^3.1.3"
 
-ajv@^6.12.4, ajv@^6.12.5, ajv@^6.9.1:
+ajv@^6.12.4, ajv@^6.12.5, ajv@^6.9.1, ajv@^8.9.0:
   version "6.12.6"
   resolved "https://registry.npmjs.org/ajv/-/ajv-6.12.6.tgz"
   integrity sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==
@@ -3221,7 +3212,7 @@ ajv@^8.0.0:
     json-schema-traverse "^1.0.0"
     require-from-string "^2.0.2"
 
-ajv@^8.8.2, ajv@^8.9.0:
+ajv@^8.8.2:
   version "8.17.1"
   resolved "https://registry.npmjs.org/ajv/-/ajv-8.17.1.tgz"
   integrity sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==
@@ -3721,16 +3712,7 @@ bs58@^5.0.0:
   dependencies:
     base-x "^4.0.0"
 
-bs58check@^2.1.2:
-  version "2.1.2"
-  resolved "https://registry.npmjs.org/bs58check/-/bs58check-2.1.2.tgz"
-  integrity sha512-0TS1jicxdU09dwJMNZtVAfzPi6Q6QeN0pM1Fkzrjn+XYHvzMKPU3pHVpva+769iNVSfIYWf7LJ6WR+BuuMf8cA==
-  dependencies:
-    bs58 "^4.0.0"
-    create-hash "^1.1.0"
-    safe-buffer "^5.1.2"
-
-bs58check@^3.0.1:
+bs58check@^2.1.2, bs58check@^3.0.1:
   version "3.0.1"
   resolved "https://registry.npmjs.org/bs58check/-/bs58check-3.0.1.tgz"
   integrity sha512-hjuuJvoWEybo7Hn/0xOrczQKKEKD63WguEjlhLExYs2wUBcebDC1jDNK17eEAD2lYfw82d5ASC1d7K3SWszjaQ==
@@ -7374,7 +7356,7 @@ react-infinite-scroll-component@^6.1.0:
   dependencies:
     throttle-debounce "^2.1.0"
 
-react-is@^16.13.1, react-is@^16.7.0:
+react-is@^16.13.1, react-is@^16.7.0, react-is@^18.0.0:
   version "16.13.1"
   resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
@@ -7383,11 +7365,6 @@ react-is@^17.0.1:
   version "17.0.2"
   resolved "https://registry.npmjs.org/react-is/-/react-is-17.0.2.tgz"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
-
-react-is@^18.0.0:
-  version "18.3.1"
-  resolved "https://registry.npmjs.org/react-is/-/react-is-18.3.1.tgz"
-  integrity sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==
 
 react-lifecycles-compat@^3.0.0:
   version "3.0.4"
@@ -7778,7 +7755,7 @@ secp256k1@^4.0.0:
     node-addon-api "^5.0.0"
     node-gyp-build "^4.2.0"
 
-semver@^6.3.0, semver@^6.3.1:
+semver@^6.3.0, semver@^6.3.1, semver@^7.5.4:
   version "6.3.1"
   resolved "https://registry.npmjs.org/semver/-/semver-6.3.1.tgz"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
@@ -7789,11 +7766,6 @@ semver@^7.5.2:
   integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
 
 semver@^7.5.3:
-  version "7.6.3"
-  resolved "https://registry.npmjs.org/semver/-/semver-7.6.3.tgz"
-  integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
-
-semver@^7.5.4:
   version "7.6.3"
   resolved "https://registry.npmjs.org/semver/-/semver-7.6.3.tgz"
   integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
