@@ -1,11 +1,19 @@
-import { PsbtResult, Staking } from "@babylonlabs-io/btc-staking-ts";
-import { Psbt, Transaction } from "bitcoinjs-lib";
-import { useCallback } from "react";
+import {
+  BabylonBtcStakingManager,
+  getUnbondingTxStakerSignature,
+  TransactionResult,
+  VersionedStakingParams,
+} from "@babylonlabs-io/btc-staking-ts";
+import { Transaction } from "bitcoinjs-lib";
+import { useCallback, useMemo } from "react";
 
 import { getUnbondingEligibility } from "@/app/api/getUnbondingEligibility";
 import { postUnbonding } from "@/app/api/postUnbonding";
+import { ClientErrorCategory } from "@/app/constants/errorMessages";
+import { ClientError } from "@/app/context/Error/errors";
 import { useBTCWallet } from "@/app/context/wallet/BTCWalletProvider";
 import { useAppState } from "@/app/state";
+import { ErrorType } from "@/app/types/errors";
 import { validateStakingInput } from "@/utils/delegations";
 import { txFeeSafetyCheck } from "@/utils/delegations/fee";
 import { getFeeRateFromMempool } from "@/utils/getFeeRateFromMempool";
@@ -13,26 +21,30 @@ import { getBbnParamByBtcHeight } from "@/utils/params";
 
 import { useNetworkFees } from "../client/api/useNetworkFees";
 
+import { useStakingManagerService } from "./useStakingManagerService";
 import { BtcStakingInputs } from "./useTransactionService";
 
 export function useV1TransactionService() {
-  const {
-    connected: btcConnected,
-    signPsbt,
-    publicKeyNoCoord,
-    address,
-    network: btcNetwork,
-    pushTx,
-  } = useBTCWallet();
+  const { publicKeyNoCoord, address: btcAddress, pushTx } = useBTCWallet();
   const { data: networkFees } = useNetworkFees();
   const { defaultFeeRate } = getFeeRateFromMempool(networkFees);
   const { networkInfo } = useAppState();
+
+  const stakerBtcInfo = useMemo(
+    () => ({
+      address: btcAddress,
+      publicKeyNoCoordHex: publicKeyNoCoord,
+    }),
+    [btcAddress, publicKeyNoCoord],
+  );
 
   // We use phase-2 parameters instead of legacy global parameters.
   // Phase-2 BBN parameters include all phase-1 global parameters,
   // except for the "tag" field which is only used for staking transactions.
   // The "tag" is not needed for withdrawal or unbonding transactions.
-  const bbnStakingParams = networkInfo?.params.bbnStakingParams.versions;
+  const versionedParams = networkInfo?.params.bbnStakingParams?.versions;
+
+  const { createBtcStakingManager } = useStakingManagerService();
 
   /**
    * Submit the unbonding transaction to babylon API for further processing
@@ -49,57 +61,40 @@ export function useV1TransactionService() {
       stakingHeight: number,
       stakingTxHex: string,
     ) => {
-      // Perform checks
-      if (!bbnStakingParams) {
-        throw new Error("Staking params not loaded");
-      }
-      if (!btcConnected || !btcNetwork)
-        throw new Error("BTC Wallet not connected");
-      validateStakingInput(stakingInput);
-
-      // Get the staking params at the time of the staking transaction
-      const stakingParam = getBbnParamByBtcHeight(
-        stakingHeight,
-        bbnStakingParams,
-      );
-
-      if (!stakingParam) {
-        throw new Error(
-          `Unable to find staking params for height ${stakingHeight}`,
-        );
-      }
-
-      // Warning: We using the "Staking" instead of "ObservableStaking"
-      // because unbonding transactions does not require phase-1 specific tags
-      const staking = new Staking(
-        btcNetwork!,
-        {
-          address,
-          publicKeyNoCoordHex: publicKeyNoCoord,
-        },
-        stakingParam,
-        stakingInput.finalityProviderPkNoCoordHex,
-        stakingInput.stakingTimelock,
+      const btcStakingManager = createBtcStakingManager();
+      validateCommonInputs(
+        btcStakingManager,
+        stakingInput,
+        stakerBtcInfo,
+        versionedParams,
       );
 
       const stakingTx = Transaction.fromHex(stakingTxHex);
-
       // Check if this staking transaction is eligible for unbonding
       const eligibility = await getUnbondingEligibility(stakingTx.getId());
       if (!eligibility) {
-        throw new Error("Staking transaction is not eligible for unbonding");
+        throw new ClientError({
+          message: "Transaction not eligible",
+          category: ClientErrorCategory.CLIENT_TRANSACTION,
+          type: ErrorType.UNBONDING,
+        });
       }
 
-      const txResult = staking.createUnbondingTransaction(stakingTx);
+      // Get the param version based on height
+      const { version: paramsVersion } = getBbnParamByBtcHeight(
+        stakingHeight,
+        versionedParams!,
+      );
 
-      const psbt = staking.toUnbondingPsbt(txResult.transaction, stakingTx);
-
-      const signedUnbondingPsbtHex = await signPsbt(psbt.toHex());
-      const signedUnbondingTx = Psbt.fromHex(
-        signedUnbondingPsbtHex,
-      ).extractTransaction();
-
-      const stakerSignatureHex = getStakerSignature(signedUnbondingTx);
+      const { transaction: signedUnbondingTx } =
+        await btcStakingManager!.createPartialSignedBtcUnbondingTransaction(
+          stakerBtcInfo,
+          stakingInput,
+          paramsVersion,
+          stakingTx,
+        );
+      const stakerSignatureHex =
+        getUnbondingTxStakerSignature(signedUnbondingTx);
       try {
         await postUnbonding(
           stakerSignatureHex,
@@ -111,14 +106,7 @@ export function useV1TransactionService() {
         throw new Error(`Error submitting unbonding transaction: ${error}`);
       }
     },
-    [
-      bbnStakingParams,
-      btcConnected,
-      btcNetwork,
-      address,
-      publicKeyNoCoord,
-      signPsbt,
-    ],
+    [createBtcStakingManager, stakerBtcInfo, versionedParams],
   );
 
   /**
@@ -128,7 +116,8 @@ export function useV1TransactionService() {
    * If earlyUnbondingTxHex is provided, the early unbonding transaction will be used,
    * otherwise the staking transaction will be used
    *
-   * @param stakingInput - The staking inputs
+   * @param stakingInput - The staking inputs (e.g. amount, timelock, etc.)
+   * @param stakingHeight - The height of the staking transaction
    * @param stakingTxHex - The staking transaction hex
    * @param earlyUnbondingTxHex - The early unbonding transaction hex
    */
@@ -139,71 +128,53 @@ export function useV1TransactionService() {
       stakingTxHex: string,
       earlyUnbondingTxHex?: string,
     ) => {
-      // Perform checks
-      if (!bbnStakingParams) {
-        throw new Error("Staking params not loaded");
-      }
-      if (!btcConnected || !btcNetwork)
-        throw new Error("BTC Wallet not connected");
-      validateStakingInput(stakingInput);
-
-      // Get the staking params at the time of the staking transaction
-      const stakingParam = getBbnParamByBtcHeight(
+      const btcStakingManager = createBtcStakingManager();
+      validateCommonInputs(
+        btcStakingManager,
+        stakingInput,
+        stakerBtcInfo,
+        versionedParams,
+      );
+      // Get the param version based on height
+      const { version: paramVersion } = getBbnParamByBtcHeight(
         stakingHeight,
-        bbnStakingParams,
+        versionedParams!,
       );
 
-      if (!stakingParam) {
-        throw new Error(
-          `Unable to find staking params for height ${stakingHeight}`,
-        );
-      }
-
-      // Warning: We using the "Staking" instead of "ObservableStaking"
-      // because withdrawal transactions does not require phase-1 specific tags
-      const staking = new Staking(
-        btcNetwork!,
-        {
-          address,
-          publicKeyNoCoordHex: publicKeyNoCoord,
-        },
-        stakingParam,
-        stakingInput.finalityProviderPkNoCoordHex,
-        stakingInput.stakingTimelock,
-      );
-
-      let psbtResult: PsbtResult;
+      validateStakingInput(stakingInput);
+      let result: TransactionResult;
       if (earlyUnbondingTxHex) {
-        psbtResult = staking.createWithdrawEarlyUnbondedTransaction(
-          Transaction.fromHex(earlyUnbondingTxHex),
-          defaultFeeRate,
-        );
+        const earlyUnbondingTx = Transaction.fromHex(earlyUnbondingTxHex);
+        result =
+          await btcStakingManager!.createSignedBtcWithdrawEarlyUnbondedTransaction(
+            stakerBtcInfo,
+            stakingInput,
+            paramVersion,
+            earlyUnbondingTx,
+            defaultFeeRate,
+          );
       } else {
-        psbtResult = staking.createWithdrawStakingExpiredTransaction(
-          Transaction.fromHex(stakingTxHex),
-          defaultFeeRate,
-        );
+        result =
+          await btcStakingManager!.createSignedBtcWithdrawStakingExpiredTransaction(
+            stakerBtcInfo,
+            stakingInput,
+            paramVersion,
+            Transaction.fromHex(stakingTxHex),
+            defaultFeeRate,
+          );
       }
-
-      const signedWithdrawalPsbtHex = await signPsbt(psbtResult.psbt.toHex());
-      const signedWithdrawalTx = Psbt.fromHex(
-        signedWithdrawalPsbtHex,
-      ).extractTransaction();
 
       // Perform a safety check on the estimated transaction fee
-      txFeeSafetyCheck(signedWithdrawalTx, defaultFeeRate, psbtResult.fee);
+      txFeeSafetyCheck(result.transaction, defaultFeeRate, result.fee);
 
-      await pushTx(signedWithdrawalTx.toHex());
+      await pushTx(result.transaction.toHex());
     },
     [
-      bbnStakingParams,
-      btcConnected,
-      btcNetwork,
-      address,
-      publicKeyNoCoord,
-      signPsbt,
-      pushTx,
+      createBtcStakingManager,
       defaultFeeRate,
+      pushTx,
+      stakerBtcInfo,
+      versionedParams,
     ],
   );
 
@@ -213,11 +184,26 @@ export function useV1TransactionService() {
   };
 }
 
-// Get the staker signature from the unbonding transaction
-const getStakerSignature = (unbondingTx: Transaction): string => {
-  try {
-    return unbondingTx.ins[0].witness[0].toString("hex");
-  } catch (error) {
-    throw new Error("Failed to get staker signature");
+/**
+ * Validate the common inputs
+ * @param btcStakingManager - The BTC Staking Manager
+ * @param stakingInput - The staking inputs (e.g. amount, timelock, etc.)
+ * @param stakerInfo - The staker info (e.g. address, public key, etc.)
+ */
+const validateCommonInputs = (
+  btcStakingManager: BabylonBtcStakingManager | null,
+  stakingInput: BtcStakingInputs,
+  stakerBtcInfo: { address: string; publicKeyNoCoordHex: string },
+  versionedParams?: VersionedStakingParams[],
+) => {
+  validateStakingInput(stakingInput);
+  if (!btcStakingManager) {
+    throw new Error("BTC Staking Manager not initialized");
+  }
+  if (!stakerBtcInfo.address || !stakerBtcInfo.publicKeyNoCoordHex) {
+    throw new Error("Staker info not initialized");
+  }
+  if (!versionedParams?.length) {
+    throw new Error("Staking params not loaded");
   }
 };

@@ -11,21 +11,25 @@ import {
 import { ONE_MINUTE } from "@/app/constants";
 import { useBbnRpc } from "@/app/context/rpc/BbnRpcProvider";
 import { useCosmosWallet } from "@/app/context/wallet/CosmosWalletProvider";
+import { useHealthCheck } from "@/app/hooks/useHealthCheck";
 
 import { useClientQuery } from "../../useClient";
+import { useRpcErrorHandler } from "../useRpcErrorHandler";
 
 const BBN_BTCLIGHTCLIENT_TIP_KEY = "BBN_BTCLIGHTCLIENT_TIP";
 const BBN_BALANCE_KEY = "BBN_BALANCE";
 const BBN_REWARDS_KEY = "BBN_REWARDS";
-const REWARD_GAUGE_KEY_BTC_DELEGATION = "btc_delegation";
+const REWARD_GAUGE_KEY_BTC_DELEGATION = "BTC_STAKER";
 
 /**
  * Query service for Babylon which contains all the queries for
  * interacting with Babylon RPC nodes
  */
 export const useBbnQuery = () => {
+  const { isGeoBlocked, isLoading: isHealthcheckLoading } = useHealthCheck();
   const { bech32Address, connected } = useCosmosWallet();
   const { queryClient } = useBbnRpc();
+  const { hasRpcError, reconnect } = useRpcErrorHandler();
 
   /**
    * Gets the rewards from the user's account.
@@ -77,7 +81,13 @@ export const useBbnQuery = () => {
         (withdrawnCoins || 0)
       );
     },
-    enabled: Boolean(queryClient && connected && bech32Address),
+    enabled: Boolean(
+      queryClient &&
+        connected &&
+        bech32Address &&
+        !isGeoBlocked &&
+        !isHealthcheckLoading,
+    ),
     staleTime: ONE_MINUTE,
     refetchInterval: ONE_MINUTE,
   });
@@ -96,7 +106,13 @@ export const useBbnQuery = () => {
       const balance = await bank.balance(bech32Address, "ubbn");
       return Number(balance?.amount ?? 0);
     },
-    enabled: Boolean(queryClient && connected && bech32Address),
+    enabled: Boolean(
+      queryClient &&
+        connected &&
+        bech32Address &&
+        !isGeoBlocked &&
+        !isHealthcheckLoading,
+    ),
     staleTime: ONE_MINUTE,
     refetchInterval: ONE_MINUTE,
   });
@@ -116,7 +132,7 @@ export const useBbnQuery = () => {
       const { header } = await btclightQueryClient.Tip(req);
       return header;
     },
-    enabled: Boolean(queryClient),
+    enabled: Boolean(queryClient && !isGeoBlocked && !isHealthcheckLoading),
     staleTime: ONE_MINUTE,
     refetchInterval: false, // Disable automatic periodic refetching
   });
@@ -125,6 +141,8 @@ export const useBbnQuery = () => {
     rewardsQuery,
     balanceQuery,
     btcTipQuery,
+    hasRpcError,
+    reconnectRpc: reconnect,
   };
 };
 

@@ -5,32 +5,42 @@ import {
   getDelegationsV2,
   type PaginatedDelegations,
 } from "@/app/api/getDelegationsV2";
-import { ONE_MINUTE } from "@/app/constants";
-import { useError } from "@/app/context/Error/ErrorContext";
+import { API_DEFAULT_RETRY_COUNT, ONE_MINUTE } from "@/app/constants";
+import { useError } from "@/app/context/Error/ErrorProvider";
 import { useBTCWallet } from "@/app/context/wallet/BTCWalletProvider";
-import { ErrorState } from "@/app/types/errors";
+
+import { useHealthCheck } from "../../useHealthCheck";
 
 export const DELEGATIONS_V2_KEY = "DELEGATIONS_V2";
 
-export function useDelegationsV2({
-  enabled = true,
-}: {
-  enabled?: boolean;
-} = {}) {
+export function useDelegationsV2(
+  babylonAddress?: string,
+  {
+    enabled = true,
+  }: {
+    enabled?: boolean;
+  } = {},
+) {
+  const { isGeoBlocked, isLoading } = useHealthCheck();
   const { publicKeyNoCoord } = useBTCWallet();
-  const { isErrorOpen, handleError, captureError } = useError();
+  const { isOpen, handleError } = useError();
 
   const query = useInfiniteQuery({
-    queryKey: [DELEGATIONS_V2_KEY, publicKeyNoCoord],
+    queryKey: [DELEGATIONS_V2_KEY, publicKeyNoCoord, babylonAddress],
     queryFn: ({ pageParam = "" }) =>
-      getDelegationsV2(publicKeyNoCoord, pageParam),
+      getDelegationsV2({
+        stakerPublicKey: publicKeyNoCoord,
+        pageKey: pageParam,
+        babylonAddress,
+      }),
     getNextPageParam: (lastPage) =>
       lastPage?.pagination?.next_key !== ""
         ? lastPage?.pagination?.next_key
         : null,
     initialPageParam: "",
     refetchInterval: ONE_MINUTE,
-    enabled: Boolean(publicKeyNoCoord) && enabled,
+    enabled:
+      Boolean(publicKeyNoCoord) && enabled && !isGeoBlocked && !isLoading,
     select: (data) => {
       const flattenedData = data.pages.reduce<PaginatedDelegations>(
         (acc, page) => {
@@ -44,19 +54,31 @@ export function useDelegationsV2({
       return flattenedData;
     },
     retry: (failureCount, _error) => {
-      return !isErrorOpen && failureCount <= 3;
+      return !isOpen && failureCount <= API_DEFAULT_RETRY_COUNT;
     },
   });
 
   useEffect(() => {
-    handleError({
-      error: query.error,
-      hasError: query.isError,
-      errorState: ErrorState.SERVER_ERROR,
-      refetchFunction: query.refetch,
-    });
-    captureError(query.error);
-  }, [query.isError, query.error, query.refetch, handleError, captureError]);
+    if (query.isError) {
+      handleError({
+        error: query.error,
+        displayOptions: {
+          retryAction: query.refetch,
+        },
+        metadata: {
+          userPublicKey: publicKeyNoCoord,
+          babylonAddress,
+        },
+      });
+    }
+  }, [
+    query.isError,
+    query.error,
+    query.refetch,
+    handleError,
+    publicKeyNoCoord,
+    babylonAddress,
+  ]);
 
   return query;
 }

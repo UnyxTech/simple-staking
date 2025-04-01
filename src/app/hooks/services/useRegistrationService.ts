@@ -1,15 +1,23 @@
-import { useCallback } from "react";
+import { SigningStep } from "@babylonlabs-io/btc-staking-ts";
+import { useCallback, useEffect } from "react";
 
 import { getDelegationV2 } from "@/app/api/getDelegationsV2";
 import { ONE_SECOND } from "@/app/constants";
-import { useError } from "@/app/context/Error/ErrorContext";
-import { useDelegationState } from "@/app/state/DelegationState";
+import { ClientErrorCategory } from "@/app/constants/errorMessages";
+import { useError } from "@/app/context/Error/ErrorProvider";
+import { ClientError } from "@/app/context/Error/errors";
+import {
+  RegistrationStep,
+  useDelegationState,
+} from "@/app/state/DelegationState";
 import { useDelegationV2State } from "@/app/state/DelegationV2State";
 import { DelegationV2StakingState as DelegationState } from "@/app/types/delegationsV2";
-import { ErrorState } from "@/app/types/errors";
+import { ErrorType } from "@/app/types/errors";
 import { retry } from "@/utils";
 
-import { SigningStep, useTransactionService } from "./useTransactionService";
+import { useBbnTransaction } from "../client/rpc/mutation/useBbnTransaction";
+
+import { useTransactionService } from "./useTransactionService";
 
 interface RegistrationData {
   stakingTxHex: string;
@@ -21,6 +29,22 @@ interface RegistrationData {
   };
 }
 
+type RegistrationSigningStep = Extract<
+  SigningStep,
+  | "staking-slashing"
+  | "unbonding-slashing"
+  | "proof-of-possession"
+  | "create-btc-delegation-msg"
+>;
+
+const REGISTRATION_STEP_MAP: Record<RegistrationSigningStep, RegistrationStep> =
+  {
+    [SigningStep.STAKING_SLASHING]: "registration-staking-slashing",
+    [SigningStep.UNBONDING_SLASHING]: "registration-unbonding-slashing",
+    [SigningStep.PROOF_OF_POSSESSION]: "registration-proof-of-possession",
+    [SigningStep.CREATE_BTC_DELEGATION_MSG]: "registration-sign-bbn",
+  };
+
 export function useRegistrationService() {
   const {
     setRegistrationStep: setStep,
@@ -29,21 +53,35 @@ export function useRegistrationService() {
     resetRegistration: reset,
     refetch: refetchV1Delegations,
   } = useDelegationState();
-  const { transitionPhase1Delegation } = useTransactionService();
+  const { transitionPhase1Delegation, subscribeToSigningSteps } =
+    useTransactionService();
   const { addDelegation, refetch: refetchV2Delegations } =
     useDelegationV2State();
-  const { showError } = useError();
+  const { sendBbnTx } = useBbnTransaction();
+  const { handleError } = useError();
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSigningSteps((step: SigningStep) => {
+      const stepName = REGISTRATION_STEP_MAP[step as RegistrationSigningStep];
+      if (stepName) {
+        setStep(stepName);
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribeToSigningSteps, setStep]);
 
   const registerPhase1Delegation = useCallback(async () => {
     // set the step to staking-slashing
     setStep("registration-staking-slashing");
 
     if (!selectedDelegation) {
-      showError({
-        error: {
+      handleError({
+        error: new ClientError({
           message: "No delegation selected for registration",
-          errorState: ErrorState.TRANSITION,
-        },
+          category: ClientErrorCategory.CLIENT_VALIDATION,
+          type: ErrorType.REGISTRATION,
+        }),
       });
       return;
     }
@@ -62,14 +100,14 @@ export function useRegistrationService() {
         },
       };
 
-      await transitionPhase1Delegation(
+      const { signedBabylonTx } = await transitionPhase1Delegation(
         registrationData.stakingTxHex,
         registrationData.startHeight,
         registrationData.stakingInput,
-        async (step: SigningStep) => {
-          setStep(`registration-${step}`);
-        },
       );
+      // Send the transaction
+      setStep("registration-send-bbn");
+      await sendBbnTx(signedBabylonTx);
 
       addDelegation({
         stakingAmount: selectedDelegation.stakingValueSat,
@@ -93,24 +131,22 @@ export function useRegistrationService() {
       }
       setProcessing(false);
     } catch (error: any) {
-      reset();
-      showError({
-        error: {
-          message: error.message,
-          errorState: ErrorState.TRANSITION,
-        },
+      handleError({
+        error,
       });
+      reset();
     }
   }, [
-    transitionPhase1Delegation,
-    setProcessing,
     setStep,
-    reset,
-    showError,
     selectedDelegation,
+    handleError,
+    setProcessing,
+    transitionPhase1Delegation,
+    sendBbnTx,
     addDelegation,
     refetchV1Delegations,
     refetchV2Delegations,
+    reset,
   ]);
 
   return { registerPhase1Delegation };

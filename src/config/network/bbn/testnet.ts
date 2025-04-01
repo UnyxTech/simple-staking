@@ -1,5 +1,10 @@
-export const BBN_TESTNET_RPC_URL = "https://babylon-testnet-rpc.nodes.guru/";
-export const BBN_TESTNET_LCD_URL = "https://babylon-testnet-api.nodes.guru/";
+export const BBN_TESTNET_RPC_URL = process.env.NEXT_PUBLIC_BABY_RPC_URL
+  ? process.env.NEXT_PUBLIC_BABY_RPC_URL
+  : "https://babylon-testnet-rpc.nodes.guru/";
+
+export const BBN_TESTNET_LCD_URL = process.env.NEXT_PUBLIC_BABY_LCD_URL
+  ? process.env.NEXT_PUBLIC_BABY_LCD_URL
+  : "https://lcd-dapp.testnet.babylonlabs.io/";
 
 export const bbnTestnet = {
   chainId: "bbn-test-5",

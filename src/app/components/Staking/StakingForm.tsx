@@ -1,4 +1,4 @@
-import { Form } from "@babylonlabs-io/bbn-core-ui";
+import { Card, Form } from "@babylonlabs-io/core-ui";
 
 import { Section } from "@/app/components/Section/Section";
 import { useStakingService } from "@/app/hooks/services/useStakingService";
@@ -19,6 +19,7 @@ export function StakingForm() {
     hasError,
     blocked,
     available,
+    disabled,
     errorMessage,
   } = useStakingState();
   const { displayPreview } = useStakingService();
@@ -32,20 +33,21 @@ export function StakingForm() {
         onSubmit={displayPreview}
       >
         <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="lg:w-3/5 xl:w-2/3 p-6 rounded border bg-secondary-contrast border-primary-light/20">
+          <Card className="flex-1 min-w-0">
             <FinalityProviders />
-          </div>
+          </Card>
 
-          <div className="flex lg:w-2/5 xl:w-1/3 p-6 rounded border bg-secondary-contrast border-primary-light/20">
+          <Card className="flex lg:w-2/5 xl:w-1/3">
             <DelegationForm
               loading={loading}
               available={available}
               blocked={blocked}
+              disabled={disabled}
               hasError={hasError}
               error={errorMessage}
               stakingInfo={stakingInfo}
             />
-          </div>
+          </Card>
         </div>
 
         <StakingModal />

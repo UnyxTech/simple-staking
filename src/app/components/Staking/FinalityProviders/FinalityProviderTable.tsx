@@ -1,4 +1,9 @@
-import { Loader, Table, useWatch } from "@babylonlabs-io/bbn-core-ui";
+/**
+ * Import polyfill for array.toSorted
+ */
+import "core-js/features/array/to-sorted";
+
+import { Loader, Table, useWatch } from "@babylonlabs-io/core-ui";
 import Image from "next/image";
 import { useMemo } from "react";
 
@@ -21,7 +26,6 @@ export const FinalityProviderTable = ({
     finalityProviders,
     hasNextPage,
     hasError,
-    filter,
     fetchNextPage,
     isRowSelectable,
   } = useFinalityProviderState();
@@ -53,7 +57,7 @@ export const FinalityProviderTable = ({
 
   const loadingView = (
     <StatusView
-      icon={<Loader className="text-primary-dark" />}
+      icon={<Loader className="text-primary-light" />}
       title="Loading Finality Providers"
     />
   );
@@ -80,19 +84,19 @@ export const FinalityProviderTable = ({
   }
 
   return (
-    <div className="h-[21rem] overflow-y-auto ">
-      <Table
-        data={tableData}
-        columns={finalityProviderColumns}
-        loading={isFetching}
-        hasMore={hasNextPage}
-        onLoadMore={fetchNextPage}
-        selectedRow={selectedFP}
-        onRowSelect={(row) => {
-          onSelectRow?.(row?.btcPk ?? "");
-        }}
-        isRowSelectable={isRowSelectable}
-      />
-    </div>
+    <Table
+      wrapperClassName="max-h-[28.5rem]"
+      className="min-w-full"
+      data={tableData}
+      columns={finalityProviderColumns}
+      loading={isFetching}
+      hasMore={hasNextPage}
+      onLoadMore={fetchNextPage}
+      selectedRow={selectedFP}
+      onRowSelect={(row) => {
+        onSelectRow?.(row?.btcPk ?? "");
+      }}
+      isRowSelectable={isRowSelectable}
+    />
   );
 };

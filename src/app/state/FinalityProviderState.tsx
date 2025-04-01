@@ -24,6 +24,7 @@ interface FilterState {
 interface FinalityProviderState {
   filter: FilterState;
   finalityProviders: FinalityProvider[];
+  finalityProviderMap: Map<string, FinalityProvider>;
   hasNextPage: boolean;
   isFetching: boolean;
   hasError: boolean;
@@ -50,10 +51,10 @@ const STATUS_FILTERS = {
 
 const FILTERS = {
   search: (fp: FinalityProvider, filter: FilterState) => {
-    const pattern = new RegExp(filter.search, "i");
-
+    const searchTerm = filter.search.toLowerCase();
     return (
-      pattern.test(fp.description?.moniker ?? "") || pattern.test(fp.btcPk)
+      (fp.description?.moniker?.toLowerCase().includes(searchTerm) ?? false) ||
+      fp.btcPk.toLowerCase().includes(searchTerm)
     );
   },
   status: (fp: FinalityProvider, filter: FilterState) =>
@@ -72,6 +73,7 @@ const defaultState: FinalityProviderState = {
   getFinalityProvider: () => null,
   fetchNextPage: () => {},
   getFinalityProviderName: () => undefined,
+  finalityProviderMap: new Map(),
 };
 
 const { StateProvider, useState: useFpState } =
@@ -97,15 +99,17 @@ export function FinalityProviderState({ children }: PropsWithChildren) {
 
   const { data: dataV1 } = useFinalityProviders();
 
-  const providersMap = useMemo(
+  const finalityProviderMap = useMemo(
     () =>
-      (data?.finalityProviders ?? []).reduce((acc, fp) => {
-        if (fp.btcPk) {
-          acc.set(fp.btcPk, fp);
-        }
+      (data?.finalityProviders ?? [])
+        .sort((a, b) => (b.activeTVLSat ?? 0) - (a.activeTVLSat ?? 0))
+        .reduce((acc, fp) => {
+          if (fp.btcPk) {
+            acc.set(fp.btcPk, fp);
+          }
 
-        return acc;
-      }, new Map<string, FinalityProvider>()),
+          return acc;
+        }, new Map<string, FinalityProvider>()),
     [data?.finalityProviders],
   );
 
@@ -123,9 +127,9 @@ export function FinalityProviderState({ children }: PropsWithChildren) {
 
   const getFinalityProviderName = useCallback(
     (btcPkHex: string) =>
-      providersMap.get(btcPkHex)?.description?.moniker ??
+      finalityProviderMap.get(btcPkHex)?.description?.moniker ??
       providersV1Map.get(btcPkHex)?.description?.moniker,
-    [providersMap, providersV1Map],
+    [finalityProviderMap, providersV1Map],
   );
 
   const handleFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -172,8 +176,9 @@ export function FinalityProviderState({ children }: PropsWithChildren) {
       filter,
       finalityProviders: filteredFinalityProviders,
       isFetching,
-      hasNextPage,
       hasError: isError,
+      hasNextPage,
+      finalityProviderMap,
       handleSort,
       handleFilter,
       isRowSelectable,
@@ -187,6 +192,7 @@ export function FinalityProviderState({ children }: PropsWithChildren) {
       isFetching,
       hasNextPage,
       isError,
+      finalityProviderMap,
       handleSort,
       handleFilter,
       isRowSelectable,

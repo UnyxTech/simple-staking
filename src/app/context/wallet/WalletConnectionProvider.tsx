@@ -2,28 +2,33 @@
 
 import {
   ChainConfigArr,
+  ExternalWallets,
   WalletProvider,
-} from "@babylonlabs-io/bbn-wallet-connect";
-import { type PropsWithChildren } from "react";
+} from "@babylonlabs-io/wallet-connector";
+import { useTheme } from "next-themes";
+import { useCallback, type PropsWithChildren } from "react";
 
-import { ConnectButton } from "@/app/context/tomo/ConnectButton";
-import { TomoConnectionProvider } from "@/app/context/tomo/TomoProvider";
-import { ErrorState } from "@/app/types/errors";
+import { logTermsAcceptance } from "@/app/api/logTermAcceptance";
+import { verifyBTCAddress } from "@/app/api/verifyBTCAddress";
 import { getNetworkConfigBBN } from "@/config/network/bbn";
 import { getNetworkConfigBTC } from "@/config/network/btc";
 
-import { useError } from "../Error/ErrorContext";
-import { TomoBBNConnector } from "../tomo/BBNConnector";
-import { TomoBTCConnector } from "../tomo/BTCConnector";
+import { useError } from "../Error/ErrorProvider";
 
 const context = typeof window !== "undefined" ? window : {};
+
+const lifecycleHooks = {
+  acceptTermsOfService: logTermsAcceptance,
+  verifyBTCAddress: verifyBTCAddress,
+};
+
 const config: ChainConfigArr = [
   {
     chain: "BTC",
     connectors: [
       {
         id: "tomo-btc-connector",
-        widget: () => <ConnectButton chainName="bitcoin" />,
+        widget: () => <ExternalWallets chainName="bitcoin" />,
       },
     ],
     config: getNetworkConfigBTC(),
@@ -33,7 +38,7 @@ const config: ChainConfigArr = [
     connectors: [
       {
         id: "tomo-bbn-connector",
-        widget: () => <ConnectButton chainName="cosmos" />,
+        widget: () => <ExternalWallets chainName="cosmos" />,
       },
     ],
     config: getNetworkConfigBBN(),
@@ -41,25 +46,28 @@ const config: ChainConfigArr = [
 ] as const;
 
 export const WalletConnectionProvider = ({ children }: PropsWithChildren) => {
-  const { showError, captureError } = useError();
+  const { handleError } = useError();
+  const { theme } = useTheme();
 
-  const handleError = (e: Error) => {
-    showError({
-      error: {
-        message: e.message,
-        errorState: ErrorState.WALLET,
-      },
-    });
-    captureError(e);
-  };
+  const onError = useCallback(
+    (error: Error) => {
+      handleError({
+        error,
+      });
+    },
+    [handleError],
+  );
 
   return (
-    <TomoConnectionProvider>
-      <WalletProvider config={config} context={context} onError={handleError}>
-        <TomoBTCConnector />
-        <TomoBBNConnector />
-        {children}
-      </WalletProvider>
-    </TomoConnectionProvider>
+    <WalletProvider
+      persistent
+      theme={theme}
+      lifecycleHooks={lifecycleHooks}
+      config={config}
+      context={context}
+      onError={onError}
+    >
+      {children}
+    </WalletProvider>
   );
 };

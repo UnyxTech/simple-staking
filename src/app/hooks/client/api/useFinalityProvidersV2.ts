@@ -5,9 +5,8 @@ import {
   type PaginatedFinalityProviders,
   getFinalityProvidersV2,
 } from "@/app/api/getFinalityProvidersV2";
-import { ONE_MINUTE } from "@/app/constants";
-import { useError } from "@/app/context/Error/ErrorContext";
-import { ErrorState } from "@/app/types/errors";
+import { API_DEFAULT_RETRY_COUNT, ONE_MINUTE } from "@/app/constants";
+import { useError } from "@/app/context/Error/ErrorProvider";
 
 const FINALITY_PROVIDERS_KEY = "GET_FINALITY_PROVIDERS_V2_KEY";
 
@@ -24,7 +23,7 @@ export function useFinalityProvidersV2({
   order,
   name,
 }: Params = {}) {
-  const { isErrorOpen, handleError, captureError } = useError();
+  const { isOpen, handleError } = useError();
 
   const query = useInfiniteQuery({
     queryKey: [FINALITY_PROVIDERS_KEY],
@@ -49,19 +48,20 @@ export function useFinalityProvidersV2({
       return flattenedData;
     },
     retry: (failureCount) => {
-      return !isErrorOpen && failureCount <= 3;
+      return !isOpen && failureCount <= API_DEFAULT_RETRY_COUNT;
     },
   });
 
   useEffect(() => {
-    handleError({
-      error: query.error,
-      hasError: query.isError,
-      errorState: ErrorState.SERVER_ERROR,
-      refetchFunction: query.refetch,
-    });
-    captureError(query.error);
-  }, [query.isError, query.error, query.refetch, handleError, captureError]);
+    if (query.isError) {
+      handleError({
+        error: query.error,
+        displayOptions: {
+          retryAction: query.refetch,
+        },
+      });
+    }
+  }, [query.isError, query.error, query.refetch, handleError]);
 
   return query;
 }

@@ -1,48 +1,37 @@
 import {
-  Dialog,
+  Button,
   DialogBody,
   DialogFooter,
   Heading,
-  MobileDialog,
   Text,
-} from "@babylonlabs-io/bbn-core-ui";
-import { MdOutlineSwapHoriz } from "react-icons/md";
+} from "@babylonlabs-io/core-ui";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { FiCheck, FiCopy } from "react-icons/fi";
 
-import { useError } from "@/app/context/Error/ErrorContext";
-import { useIsMobileView } from "@/app/hooks/useBreakpoint";
-import { ErrorState, ShowErrorParams } from "@/app/types/errors";
+import WarningTriangle from "@/app/assets/warning-triangle.svg";
+import { useError } from "@/app/context/Error/ErrorProvider";
+import { ErrorType, ShowErrorParams } from "@/app/types/errors";
+import { getCommitHash } from "@/utils/version";
 
-interface ErrorModalProps {
-  open: boolean;
-  onClose: () => void;
-  onRetry?: () => void;
-  errorMessage: string;
-  errorState?: ErrorState;
-  noCancel?: boolean;
-}
+import { ResponsiveDialog } from "./ResponsiveDialog";
 
-export const ErrorModal: React.FC<ErrorModalProps> = ({
-  open,
-  onClose,
-  onRetry,
-  errorMessage,
-  errorState,
-  noCancel,
-}) => {
-  const isMobileView = useIsMobileView();
-  const DialogComponent = isMobileView ? MobileDialog : Dialog;
-  const { error, retryErrorAction } = useError();
+export const ErrorModal: React.FC = () => {
+  const { error, modalOptions, dismissError, isOpen } = useError();
+  const { retryAction, noCancel } = modalOptions;
+  const [copied, setCopied] = useState(false);
+  const version = getCommitHash();
 
   const handleRetry = () => {
     const retryErrorParam: ShowErrorParams = {
       error: {
         message: error.message,
-        errorState: error.errorState,
+        type: error.type,
       },
-      retryAction: retryErrorAction,
+      retryAction: retryAction,
     };
 
-    onClose();
+    dismissError();
 
     setTimeout(() => {
       if (retryErrorParam.retryAction) {
@@ -51,73 +40,116 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
     }, 300);
   };
 
+  const ERROR_TITLES = {
+    [ErrorType.SERVER]: "Server Error",
+    [ErrorType.WITHDRAW]: "Withdraw Error",
+    [ErrorType.STAKING]: "Stake Error",
+    [ErrorType.UNBONDING]: "Unbonding Error",
+    [ErrorType.REGISTRATION]: "Transition Error",
+    [ErrorType.DELEGATIONS]: "Delegations Error",
+    [ErrorType.WALLET]: "Wallet Error",
+    [ErrorType.UNKNOWN]: "System Error",
+  };
+
+  const ERROR_MESSAGES = {
+    [ErrorType.SERVER]: "Error fetching data due to:",
+    [ErrorType.UNBONDING]: "Your request to unbond failed due to:",
+    [ErrorType.WITHDRAW]: "Failed to withdraw due to:",
+    [ErrorType.STAKING]: "Failed to stake due to:",
+    [ErrorType.DELEGATIONS]: "Failed to fetch delegations due to:",
+    [ErrorType.REGISTRATION]: "Failed to transition due to:",
+    [ErrorType.WALLET]: "Failed to perform wallet action due to:",
+    [ErrorType.UNKNOWN]: "A system error occurred:",
+  };
+
   const getErrorTitle = () => {
-    switch (errorState) {
-      case ErrorState.SERVER_ERROR:
-        return "Server Error";
-      case ErrorState.WALLET:
-        return "Network Error";
-      case ErrorState.WITHDRAW:
-        return "Withdraw Error";
-      case ErrorState.STAKING:
-        return "Stake Error";
-      case ErrorState.UNBONDING:
-        return "Unbonding Error";
-      default:
-        return "Unknown Error";
-    }
+    return ERROR_TITLES[error.type ?? ErrorType.UNKNOWN];
   };
 
   const getErrorMessage = () => {
-    switch (errorState) {
-      case ErrorState.SERVER_ERROR:
-        return `Error fetching data due to: ${errorMessage}`;
-      case ErrorState.UNBONDING:
-        return `Your request to unbond failed due to: ${errorMessage}`;
-      case ErrorState.WITHDRAW:
-        return `Failed to withdraw due to: ${errorMessage}`;
-      case ErrorState.STAKING:
-        return `Failed to stake due to: ${errorMessage}`;
-      case ErrorState.WALLET:
-        return `Failed to switch network due to: ${errorMessage}`;
-      default:
-        return errorMessage;
-    }
+    const prefix = ERROR_MESSAGES[error.type ?? ErrorType.UNKNOWN];
+    return `${prefix} ${error.displayMessage || error.message}`;
   };
 
+  const copyErrorDetails = () => {
+    const errorDetails = JSON.stringify(
+      {
+        date: new Date().toISOString(),
+        device: navigator.userAgent,
+        version,
+        release: version,
+        environment: process.env.NODE_ENV,
+        ...error,
+      },
+      null,
+      2,
+    );
+
+    navigator.clipboard.writeText(errorDetails);
+    setCopied(true);
+  };
+
+  useEffect(() => {
+    if (copied) {
+      const timer = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copied]);
+
   return (
-    <DialogComponent open={open} onClose={onClose}>
-      <DialogBody className="flex flex-col pb-8 pt-4 text-primary-dark gap-4 items-center justify-center">
-        <div className="bg-primary-contrast h-20 w-20 flex items-center justify-center">
-          <MdOutlineSwapHoriz className="text-5xl" />
+    <ResponsiveDialog
+      className="z-[150]"
+      backdropClassName="z-[100]"
+      open={isOpen}
+      onClose={dismissError}
+    >
+      <DialogBody className="text-accent-primary py-16 text-center">
+        <div className="inline-flex bg-primary-contrast h-20 w-20 items-center justify-center mb-6">
+          <Image src={WarningTriangle} alt="Warning" width={48} height={42} />
         </div>
-        <Heading variant="h3" className="text-center font-bold text-error">
+
+        <Heading variant="h4" className="mb-4 text-accent-primary">
           {getErrorTitle()}
         </Heading>
+
         <div className="flex flex-col gap-3">
-          <Text variant="body1" className="text-center">
+          <Text variant="body1" className="text-center text-accent-secondary">
             {getErrorMessage()}
           </Text>
+
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <button
+              className="flex items-center gap-1 text-sm text-accent-secondary hover:opacity-70"
+              onClick={copyErrorDetails}
+            >
+              {copied ? (
+                <FiCheck className="w-4 h-4" />
+              ) : (
+                <FiCopy className="w-4 h-4" />
+              )}
+              <span>{copied ? "Copied!" : "Copy error details"}</span>
+            </button>
+          </div>
         </div>
       </DialogBody>
-      <DialogFooter className="mt-4 flex justify-around gap-4">
+
+      <DialogFooter className="flex gap-4">
         {!noCancel && ( // Only show the cancel button if noCancel is false or undefined
-          <button
-            className="btn btn-outline flex-1 rounded-lg px-2"
-            onClick={() => onClose()}
+          <Button
+            variant="outlined"
+            fluid
+            className="px-2"
+            onClick={dismissError}
           >
             Cancel
-          </button>
+          </Button>
         )}
-        {onRetry && (
-          <button
-            className="btn-primary btn flex-1 rounded-lg px-2 text-white"
-            onClick={handleRetry}
-          >
+        {retryAction && (
+          <Button className="px-2" fluid onClick={handleRetry}>
             Try Again
-          </button>
+          </Button>
         )}
       </DialogFooter>
-    </DialogComponent>
+    </ResponsiveDialog>
   );
 };

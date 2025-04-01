@@ -14,6 +14,10 @@ import { btcToSatoshi, satoshiToBtc } from "@/utils/btc";
 import { createStateUtils } from "@/utils/createStateUtils";
 import { getFeeRateFromMempool } from "@/utils/getFeeRateFromMempool";
 
+import { STAKING_DISABLED } from "../constants";
+
+import { useBalanceState } from "./BalanceState";
+
 const formatStakingAmount = (value: number) =>
   !Number.isNaN(value) ? btcToSatoshi(value) : undefined;
 const formatNumber = (value: number) =>
@@ -29,23 +33,24 @@ export interface FormFields {
   feeAmount: number;
 }
 
-export type StakingStep =
-  | undefined
-  | "preview"
-  | "eoi-staking-slashing"
-  | "eoi-unbonding-slashing"
-  | "eoi-proof-of-possession"
-  | "eoi-sign-bbn"
-  | "eoi-send-bbn"
-  | "verifying"
-  | "verified"
-  | "feedback-success"
-  | "feedback-cancel";
+export enum StakingStep {
+  PREVIEW = "preview",
+  EOI_STAKING_SLASHING = "eoi-staking-slashing",
+  EOI_UNBONDING_SLASHING = "eoi-unbonding-slashing",
+  EOI_PROOF_OF_POSSESSION = "eoi-proof-of-possession",
+  EOI_SIGN_BBN = "eoi-sign-bbn",
+  EOI_SEND_BBN = "eoi-send-bbn",
+  VERIFYING = "verifying",
+  VERIFIED = "verified",
+  FEEDBACK_SUCCESS = "feedback-success",
+  FEEDBACK_CANCEL = "feedback-cancel",
+}
 
 export interface StakingState {
   hasError: boolean;
   blocked: boolean;
   available: boolean;
+  disabled: boolean;
   loading: boolean;
   processing: boolean;
   errorMessage?: string;
@@ -63,7 +68,7 @@ export interface StakingState {
     unbondingTime: number;
   };
   formData?: FormFields;
-  step: StakingStep;
+  step?: StakingStep;
   verifiedDelegation?: DelegationV2;
   goToStep: (name: StakingStep) => void;
   setProcessing: (value: boolean) => void;
@@ -77,6 +82,7 @@ const { StateProvider, useState: useStakingState } =
     hasError: false,
     blocked: false,
     available: false,
+    disabled: false,
     loading: false,
     processing: false,
     errorMessage: "",
@@ -123,11 +129,9 @@ export function StakingState({ children }: PropsWithChildren) {
 
   const {
     networkInfo,
-    stakableBtcBalance,
     isError: isStateError,
     isLoading: isStateLoading,
   } = useAppState();
-  console.log("networkInfo", networkInfo, stakableBtcBalance);
   const {
     isApiNormal,
     isGeoBlocked,
@@ -139,10 +143,12 @@ export function StakingState({ children }: PropsWithChildren) {
     isError: isNetworkFeeError,
     isLoading: isFeeLoading,
   } = useNetworkFees();
+  const { stakableBtcBalance, loading: isBalanceLoading } = useBalanceState();
 
   const { publicKeyNoCoord } = useBTCWallet();
 
-  const loading = isStateLoading || isCheckLoading || isFeeLoading;
+  const loading =
+    isStateLoading || isCheckLoading || isFeeLoading || isBalanceLoading;
   const hasError = isStateError || isNetworkFeeError || !isApiNormal;
   const blocked = isGeoBlocked;
   const available = Boolean(networkInfo?.stakingStatus.isStakingOpen);
@@ -246,10 +252,6 @@ export function StakingState({ children }: PropsWithChildren) {
             .max(
               stakingInfo?.maxFeeRate ?? 0,
               "Selected fee rate is higher than the hour fee",
-            )
-            .min(
-              stakingInfo?.defaultFeeRate ?? 0,
-              "Fees are low, inclusion is not guaranteed",
             ),
 
           feeAmount: number()
@@ -264,7 +266,7 @@ export function StakingState({ children }: PropsWithChildren) {
 
   const goToStep = useCallback(
     (stepName: StakingStep) => {
-      if (stepName === "feedback-success") {
+      if (stepName === StakingStep.FEEDBACK_SUCCESS) {
         if (successModalShown) {
           return;
         } else {
@@ -272,14 +274,13 @@ export function StakingState({ children }: PropsWithChildren) {
         }
       }
 
-      if (stepName === "feedback-cancel") {
+      if (stepName === StakingStep.FEEDBACK_CANCEL) {
         if (cancelModalShown) {
           return;
         } else {
           setCancelModalShown(true);
         }
       }
-
       setCurrentStep(stepName);
     },
     [
@@ -303,6 +304,7 @@ export function StakingState({ children }: PropsWithChildren) {
       hasError,
       blocked,
       available,
+      disabled: STAKING_DISABLED,
       loading,
       processing,
       errorMessage,

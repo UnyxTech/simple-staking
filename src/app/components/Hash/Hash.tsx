@@ -1,8 +1,8 @@
-import { Text } from "@babylonlabs-io/bbn-core-ui";
+import { Text } from "@babylonlabs-io/core-ui";
 import { useEffect, useState } from "react";
 import { FiCopy } from "react-icons/fi";
 import { IoIosCheckmarkCircle } from "react-icons/io";
-import { twJoin } from "tailwind-merge";
+import { twMerge } from "tailwind-merge";
 import { useCopyToClipboard } from "usehooks-ts";
 
 import { trim } from "@/utils/trim";
@@ -14,6 +14,7 @@ interface HashProps {
   small?: boolean;
   fullWidth?: boolean;
   symbols?: number;
+  className?: string;
 }
 
 export const Hash: React.FC<HashProps> = ({
@@ -22,6 +23,7 @@ export const Hash: React.FC<HashProps> = ({
   address,
   small,
   fullWidth,
+  className,
   symbols = 8,
 }) => {
   const [_value, copy] = useCopyToClipboard();
@@ -46,10 +48,12 @@ export const Hash: React.FC<HashProps> = ({
 
   return (
     <div
-      className={twJoin(
+      className={twMerge(
         "inline-flex min-h-[25px] cursor-pointer items-center",
-        "hover:opacity-100 pointer-events-auto",
+        "hover:opacity-100 pointer-events-auto text-accent-primary",
+        className,
         !noFade && "opacity-50",
+        fullWidth && "w-full",
       )}
       onClick={handleCopy}
     >
@@ -58,7 +62,6 @@ export const Hash: React.FC<HashProps> = ({
         style={{
           minWidth: small ? "3.5rem" : "5.5rem",
         }}
-        className={twJoin("text-primary-dark", fullWidth ? "w-full" : "")}
       >
         {copiedText || (
           <>

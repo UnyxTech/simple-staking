@@ -11,10 +11,6 @@ export interface PaginatedDelegations {
   pagination: Pagination;
 }
 
-interface DelegationV2APIResponse {
-  data: DelegationV2API;
-}
-
 interface DelegationV2API {
   finality_provider_btc_pks_hex: string[];
   params_version: number;
@@ -49,23 +45,18 @@ interface DelegationV2API {
 }
 
 export const getDelegationV2 = async (
-  stakingTxHashHex?: string,
+  stakingTxHashHex: string,
 ): Promise<DelegationV2 | null> => {
-  if (!stakingTxHashHex) {
-    throw new Error("No staking tx hash provided");
-  }
-
   try {
     const params = {
       staking_tx_hash_hex: stakingTxHashHex,
     };
 
-    const { data: delegationAPIResponse } = await apiWrapper(
-      "GET",
-      "/v2/delegation",
-      "Error getting delegation v2",
-      { query: params },
-    );
+    const { data: delegationAPIResponse } = await apiWrapper<{
+      data: DelegationV2API;
+    }>("GET", "/v2/delegation", "Error getting delegation v2", {
+      query: params,
+    });
 
     return apiToDelegationV2(delegationAPIResponse.data);
   } catch {
@@ -73,24 +64,29 @@ export const getDelegationV2 = async (
   }
 };
 
-export const getDelegationsV2 = async (
-  publicKeyNoCoord: string,
-  pageKey?: string,
-): Promise<PaginatedDelegations> => {
-  if (!publicKeyNoCoord) {
-    throw new Error("No public key provided");
-  }
+interface DelegationProps {
+  stakerPublicKey: string;
+  babylonAddress?: string;
+  pageKey?: string;
+}
+
+export const getDelegationsV2 = async ({
+  stakerPublicKey,
+  babylonAddress,
+  pageKey,
+}: DelegationProps): Promise<PaginatedDelegations> => {
   const params = {
-    staker_pk_hex: publicKeyNoCoord,
+    staker_pk_hex: stakerPublicKey,
+    babylon_address: babylonAddress,
     pagination_key: pageKey ? pageKey : "",
   };
 
-  const { data: delegationsAPIResponse } = await apiWrapper(
-    "GET",
-    "/v2/delegations",
-    "Error getting delegations v2",
-    { query: params },
-  );
+  const { data: delegationsAPIResponse } = await apiWrapper<{
+    data: DelegationV2API[];
+    pagination: Pagination;
+  }>("GET", "/v2/delegations", "Error getting delegations v2", {
+    query: params,
+  });
 
   const pagination: Pagination = {
     next_key: delegationsAPIResponse.pagination.next_key,

@@ -7,14 +7,16 @@ import {
   Heading,
   Loader,
   Text,
-} from "@babylonlabs-io/bbn-core-ui";
+} from "@babylonlabs-io/core-ui";
 import { Fragment } from "react";
 
 import { useNetworkInfo } from "@/app/hooks/client/api/useNetworkInfo";
+import { usePrice } from "@/app/hooks/client/api/usePrices";
 import { useIsMobileView } from "@/app/hooks/useBreakpoint";
 import { getNetworkConfigBBN } from "@/config/network/bbn";
 import { getNetworkConfigBTC } from "@/config/network/btc";
 import { satoshiToBtc } from "@/utils/btc";
+import { calculateTokenValueInCurrency } from "@/utils/formatCurrency";
 import { maxDecimals } from "@/utils/maxDecimals";
 import { blocksToDisplayTime } from "@/utils/time";
 
@@ -61,6 +63,8 @@ export const PreviewModal = ({
       networkInfo?.params.bbnStakingParams?.latestParam?.unbondingTime,
     ) || "7 days";
 
+  const btcInUsd = usePrice(coinSymbol);
+
   const FinalityProviderValue = isMobileView ? (
     <span className="flex gap-2">
       {finalityProviderAvatar && (
@@ -85,9 +89,21 @@ export const PreviewModal = ({
     {
       key: "Stake Amount",
       value: (
-        <Text variant="body1">
-          {maxDecimals(satoshiToBtc(stakingAmountSat), 8)} {coinSymbol}
-        </Text>
+        <>
+          <Text variant="body1">
+            {maxDecimals(satoshiToBtc(stakingAmountSat), 8)} {coinSymbol}
+          </Text>
+          <Text
+            as="span"
+            variant="body2"
+            className="text-accent-secondary ml-2"
+          >
+            {calculateTokenValueInCurrency(
+              satoshiToBtc(stakingAmountSat),
+              btcInUsd,
+            )}
+          </Text>
+        </>
       ),
     },
     {
@@ -97,9 +113,21 @@ export const PreviewModal = ({
     {
       key: "Transaction fee",
       value: (
-        <Text variant="body1">
-          {maxDecimals(satoshiToBtc(stakingFeeSat), 8)} {coinSymbol}
-        </Text>
+        <>
+          <Text variant="body1">
+            {maxDecimals(satoshiToBtc(stakingFeeSat), 8)} {coinSymbol}
+          </Text>
+          <Text
+            as="span"
+            variant="body2"
+            className="text-accent-secondary ml-2"
+          >
+            {calculateTokenValueInCurrency(
+              satoshiToBtc(stakingFeeSat),
+              btcInUsd,
+            )}
+          </Text>
+        </>
       ),
     },
     {
@@ -107,7 +135,7 @@ export const PreviewModal = ({
       value: (
         <>
           <Text variant="body1">{stakingTimelock} blocks</Text>
-          <Text variant="body2" className="text-gray-500">
+          <Text variant="body2" className="text-accent-secondary">
             ~ {blocksToDisplayTime(stakingTimelock)}
           </Text>
         </>
@@ -122,9 +150,21 @@ export const PreviewModal = ({
     {
       key: "Unbonding fee",
       value: (
-        <Text variant="body1">
-          {maxDecimals(satoshiToBtc(unbondingFeeSat), 8)} {coinSymbol}
-        </Text>
+        <>
+          <Text variant="body1">
+            {maxDecimals(satoshiToBtc(unbondingFeeSat), 8)} {coinSymbol}
+          </Text>
+          <Text
+            as="span"
+            variant="body2"
+            className="text-accent-secondary ml-2"
+          >
+            {calculateTokenValueInCurrency(
+              satoshiToBtc(unbondingFeeSat),
+              btcInUsd,
+            )}
+          </Text>
+        </>
       ),
     },
   ];
@@ -134,9 +174,10 @@ export const PreviewModal = ({
       <DialogHeader
         title="Preview"
         onClose={onClose}
-        className="text-primary-dark"
+        className="text-accent-primary"
       />
-      <DialogBody className="flex flex-col pb-8 pt-4 text-primary-dark gap-4">
+
+      <DialogBody className="flex flex-col mb-8 mt-4 text-accent-primary gap-4">
         <div className="flex flex-col">
           {previewFields.map((field, index) => (
             <Fragment key={field.key}>
@@ -166,25 +207,28 @@ export const PreviewModal = ({
           </Text>
         </div>
       </DialogBody>
+
       <DialogFooter className="flex gap-4">
         <Button
           variant="outlined"
           color="primary"
           onClick={onClose}
-          className="flex-1 text-xs sm:text-base"
+          className="flex-1"
         >
           Cancel
         </Button>
         <Button
           variant="contained"
           onClick={onSign}
-          className="flex-1 text-xs sm:text-base"
+          className="flex-1"
           disabled={processing}
         >
           {processing ? (
             <Loader size={16} className="text-white" />
           ) : (
-            "Proceed to Signing"
+            <>
+              Proceed <span className="hidden md:inline">to Signing</span>
+            </>
           )}
         </Button>
       </DialogFooter>

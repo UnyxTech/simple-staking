@@ -1,8 +1,9 @@
+import { UTXO } from "@babylonlabs-io/btc-staking-ts";
 import {
   InscriptionIdentifier,
   useInscriptionProvider,
-} from "@babylonlabs-io/bbn-wallet-connect";
-import { UTXO } from "@babylonlabs-io/btc-staking-ts";
+} from "@babylonlabs-io/wallet-connector";
+import { useTheme } from "next-themes";
 import { useCallback, useMemo, type PropsWithChildren } from "react";
 
 import { useOrdinals } from "@/app/hooks/client/api/useOrdinals";
@@ -13,24 +14,28 @@ import { filterDust } from "@/utils/wallet";
 import { useNetworkInfo } from "../hooks/client/api/useNetworkInfo";
 import { NetworkInfo } from "../types/networkInfo";
 
+import { BalanceState } from "./BalanceState";
 import { DelegationState } from "./DelegationState";
-import { DelegationV2State, useDelegationV2State } from "./DelegationV2State";
+import { DelegationV2State } from "./DelegationV2State";
 import { FinalityProviderState } from "./FinalityProviderState";
 import { RewardsState } from "./RewardState";
 import { StakingState } from "./StakingState";
 
+// The order of the states is important for the state provider
 const STATE_LIST = [
   DelegationState,
   DelegationV2State,
   FinalityProviderState,
+  BalanceState,
   StakingState,
   RewardsState,
 ];
 
 export interface AppState {
+  theme?: string;
   availableUTXOs?: UTXO[];
-  stakableBtcBalance: number;
-  totalBtcBalance: number;
+  allUTXOs?: UTXO[];
+  inscriptionsUTXOs?: UTXO[];
   networkInfo?: NetworkInfo;
   isError: boolean;
   isLoading: boolean;
@@ -38,24 +43,26 @@ export interface AppState {
   includeOrdinals: () => void;
   excludeOrdinals: () => void;
   refetchUTXOs: () => void;
+  setTheme: (theme: "dark" | "light") => void;
 }
 
 const { StateProvider, useState: useApplicationState } =
   createStateUtils<AppState>({
+    theme: undefined,
     isLoading: false,
     isError: false,
-    stakableBtcBalance: 0,
-    totalBtcBalance: 0,
     ordinalsExcluded: true,
     includeOrdinals: () => {},
     excludeOrdinals: () => {},
     refetchUTXOs: () => {},
+    setTheme: () => {},
   });
 
 export function AppState({ children }: PropsWithChildren) {
+  const { theme, setTheme } = useTheme();
+
   const { lockInscriptions: ordinalsExcluded, toggleLockInscriptions } =
     useInscriptionProvider();
-  const { getStakedBalance } = useDelegationV2State();
 
   // States
   const {
@@ -91,6 +98,10 @@ export function AppState({ children }: PropsWithChildren) {
     [ordinals],
   );
 
+  const inscriptionsUTXOs = useMemo(() => {
+    return confirmedUTXOs.filter((utxo) => ordinalMap[utxo.txid]);
+  }, [confirmedUTXOs, ordinalMap]);
+
   const availableUTXOs = useMemo(() => {
     if (isLoading) return [];
 
@@ -98,19 +109,6 @@ export function AppState({ children }: PropsWithChildren) {
       ? filterDust(confirmedUTXOs).filter((utxo) => !ordinalMap[utxo.txid])
       : confirmedUTXOs;
   }, [isLoading, ordinalsExcluded, confirmedUTXOs, ordinalMap]);
-
-  const stakableBtcBalance = useMemo(
-    () =>
-      availableUTXOs.reduce((accumulator, item) => accumulator + item.value, 0),
-    [availableUTXOs],
-  );
-
-  const totalBtcBalance = useMemo(
-    () =>
-      allUTXOs.reduce((accumulator, item) => accumulator + item.value, 0) +
-      getStakedBalance(),
-    [allUTXOs, getStakedBalance],
-  );
 
   // Handlers
   const includeOrdinals = useCallback(
@@ -125,9 +123,10 @@ export function AppState({ children }: PropsWithChildren) {
   // Context
   const context = useMemo(
     () => ({
+      theme,
+      allUTXOs,
       availableUTXOs,
-      stakableBtcBalance,
-      totalBtcBalance,
+      inscriptionsUTXOs,
       networkInfo,
       isError,
       isLoading,
@@ -135,11 +134,13 @@ export function AppState({ children }: PropsWithChildren) {
       includeOrdinals,
       excludeOrdinals,
       refetchUTXOs,
+      setTheme,
     }),
     [
+      theme,
+      allUTXOs,
       availableUTXOs,
-      stakableBtcBalance,
-      totalBtcBalance,
+      inscriptionsUTXOs,
       networkInfo,
       isError,
       isLoading,
@@ -147,6 +148,7 @@ export function AppState({ children }: PropsWithChildren) {
       includeOrdinals,
       excludeOrdinals,
       refetchUTXOs,
+      setTheme,
     ],
   );
 

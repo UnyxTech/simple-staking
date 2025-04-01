@@ -1,9 +1,12 @@
 import { getPublicKeyNoCoord } from "@babylonlabs-io/btc-staking-ts";
-import { AxiosResponse } from "axios";
 
+import { API_ENDPOINTS } from "@/app/constants/endpoints";
+
+import { ServerError } from "../context/Error/errors";
 import { NetworkInfo } from "../types/networkInfo";
 
 import { apiWrapper } from "./apiWrapper";
+import { HttpStatusCode } from "./httpStatusCodes";
 
 interface NetworkInfoDataResponse {
   data: NetworkInfoAPI;
@@ -44,18 +47,20 @@ export interface BbnParams {
   delegation_creation_base_gas_fee: number;
   btc_activation_height: number;
   allow_list_expiration_height: number;
+  btcActivationHeight?: number;
 }
 
 export const getNetworkInfo = async (): Promise<NetworkInfo> => {
-  const { data } = (await apiWrapper(
+  const response = await apiWrapper<NetworkInfoDataResponse>(
     "GET",
     "/v2/network-info",
     "Error getting network info",
-  )) as AxiosResponse<NetworkInfoDataResponse>;
+  );
+  const { data } = response;
   const { params, staking_status } = data.data;
 
   const stakingVersions = (params.bbn || [])
-    .sort((a, b) => a.version - b.version) // Sort by version ascending
+    .sort((a, b) => a.version - b.version)
     .map((v) => ({
       version: v.version,
       covenantNoCoordPks: v.covenant_pks.map((pk) =>
@@ -95,9 +100,12 @@ export const getNetworkInfo = async (): Promise<NetworkInfo> => {
     (param, index) => param === sortedByHeight[index],
   );
   if (!areEqual) {
-    throw new Error(
-      "Version numbers and BTC activation heights are not consistently ordered",
-    );
+    throw new ServerError({
+      message:
+        "Version numbers and BTC activation heights are not consistently ordered",
+      status: HttpStatusCode.InternalServerError,
+      endpoint: API_ENDPOINTS.NETWORK_INFO,
+    });
   }
 
   const latestStakingParam = stakingVersions.reduce((prev, current) =>
@@ -106,7 +114,7 @@ export const getNetworkInfo = async (): Promise<NetworkInfo> => {
 
   // Map the BTC checkpoint params to the expected format
   const epochCheckVersions = (params.btc || [])
-    .sort((a, b) => a.version - b.version) // Sort by version ascending
+    .sort((a, b) => a.version - b.version)
     .map((v) => ({
       version: v.version,
       btcConfirmationDepth: v.btc_confirmation_depth,
@@ -119,7 +127,11 @@ export const getNetworkInfo = async (): Promise<NetworkInfo> => {
 
   const genesisStakingParam = stakingVersions.find((v) => v.version === 0);
   if (!genesisStakingParam) {
-    throw new Error("Genesis staking params not found");
+    throw new ServerError({
+      message: "Genesis staking params not found",
+      status: HttpStatusCode.InternalServerError,
+      endpoint: API_ENDPOINTS.NETWORK_INFO,
+    });
   }
 
   // Find the genesis epoch check param (version 0)
@@ -127,7 +139,11 @@ export const getNetworkInfo = async (): Promise<NetworkInfo> => {
     (v) => v.version === 0,
   );
   if (!genesisEpochCheckParam) {
-    throw new Error("Genesis epoch check params not found");
+    throw new ServerError({
+      message: "Genesis epoch check params not found",
+      status: HttpStatusCode.InternalServerError,
+      endpoint: API_ENDPOINTS.NETWORK_INFO,
+    });
   }
 
   return {

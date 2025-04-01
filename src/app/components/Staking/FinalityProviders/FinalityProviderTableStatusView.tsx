@@ -1,4 +1,4 @@
-import { Heading, Text } from "@babylonlabs-io/bbn-core-ui";
+import { Heading, Text } from "@babylonlabs-io/core-ui";
 import { twMerge } from "tailwind-merge";
 
 interface StatusViewProps {
@@ -23,11 +23,11 @@ export const StatusView = ({
           {icon}
         </div>
       </div>
-      <Heading variant="h6" className="text-primary-dark">
+      <Heading variant="h6" className="text-accent-primary">
         {title}
       </Heading>
       {description && (
-        <Text variant="body1" className="text-primary-dark text-center">
+        <Text variant="body1" className="text-accent-primary text-center">
           {description}
         </Text>
       )}

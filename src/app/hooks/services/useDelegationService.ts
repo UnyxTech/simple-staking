@@ -1,12 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { DELEGATION_ACTIONS as ACTIONS } from "@/app/constants";
+import { ClientErrorCategory } from "@/app/constants/errorMessages";
+import { ClientError } from "@/app/context/Error/errors";
 import { useAppState } from "@/app/state";
 import { useDelegationV2State } from "@/app/state/DelegationV2State";
+import { useFinalityProviderState } from "@/app/state/FinalityProviderState";
 import {
   DelegationV2,
   DelegationV2StakingState as State,
 } from "@/app/types/delegationsV2";
+import { ErrorType } from "@/app/types/errors";
+import { FinalityProvider } from "@/app/types/finalityProviders";
 import { BbnStakingParamsVersion } from "@/app/types/networkInfo";
 import { validateDelegation } from "@/utils/delegations";
 import { getBbnParamByVersion } from "@/utils/params";
@@ -57,7 +62,7 @@ export function useDelegationService() {
     delegations = [],
     fetchMoreDelegations,
     hasMoreDelegations,
-    isLoading,
+    isLoading: isDelegationLoading,
     updateDelegationStatus,
   } = useDelegationV2State();
 
@@ -68,6 +73,22 @@ export function useDelegationService() {
     submitTimelockUnbondedWithdrawalTx,
     submitSlashingWithdrawalTx,
   } = useTransactionService();
+
+  const { isFetching: isFPLoading, finalityProviderMap } =
+    useFinalityProviderState();
+
+  const isLoading = isDelegationLoading || isFPLoading;
+
+  const delegationsWithFP = useMemo(
+    () =>
+      delegations.map((d) => ({
+        ...d,
+        fp: finalityProviderMap.get(
+          d.finalityProviderBtcPksHex[0],
+        ) as FinalityProvider,
+      })),
+    [isLoading, delegations, finalityProviderMap],
+  );
 
   const validations = useMemo(
     () =>
@@ -121,7 +142,11 @@ export function useDelegationService() {
         covenantUnbondingSignatures,
       }: TxProps) => {
         if (!covenantUnbondingSignatures) {
-          throw new Error("Covenant unbonding signatures not found");
+          throw new ClientError({
+            message: "Covenant unbonding signatures not found",
+            category: ClientErrorCategory.CLIENT_TRANSACTION,
+            type: ErrorType.UNBONDING,
+          });
         }
 
         await submitUnbondingTx(
@@ -166,9 +191,11 @@ export function useDelegationService() {
         slashing,
       }) => {
         if (!slashing.unbondingSlashingTxHex) {
-          throw new Error(
-            "Unbonding slashing tx not found, can't submit withdrawal",
-          );
+          throw new ClientError({
+            message: "Unbonding slashing tx not found, can't submit withdrawal",
+            category: ClientErrorCategory.CLIENT_TRANSACTION,
+            type: ErrorType.UNBONDING,
+          });
         }
 
         await submitSlashingWithdrawalTx(
@@ -208,7 +235,11 @@ export function useDelegationService() {
         slashing,
       }) => {
         if (!slashing.stakingSlashingTxHex) {
-          throw new Error("Slashing tx not found, can't submit withdrawal");
+          throw new ClientError({
+            message: "Slashing tx not found, can't submit withdrawal",
+            category: ClientErrorCategory.CLIENT_TRANSACTION,
+            type: ErrorType.WITHDRAW,
+          });
         }
 
         await submitSlashingWithdrawalTx(
@@ -310,7 +341,7 @@ export function useDelegationService() {
   return {
     processing,
     isLoading,
-    delegations,
+    delegations: delegationsWithFP,
     validations,
     hasMoreDelegations,
     confirmationModal,

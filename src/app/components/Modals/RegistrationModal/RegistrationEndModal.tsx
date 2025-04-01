@@ -1,4 +1,4 @@
-import { Text } from "@babylonlabs-io/bbn-core-ui";
+import { Text } from "@babylonlabs-io/core-ui";
 
 import { getNetworkConfig } from "@/config/network";
 
@@ -19,7 +19,7 @@ const SuccessIcon = () => (
   >
     <path
       d="M47.8334 23L42.5467 16.955L43.2834 8.96L35.4617 7.18333L31.3667 0.25L24 3.41333L16.6334 0.25L12.5384 7.16167L4.71669 8.91667L5.45335 16.9333L0.166687 23L5.45335 29.045L4.71669 37.0617L12.5384 38.8383L16.6334 45.75L24 42.565L31.3667 45.7283L35.4617 38.8167L43.2834 37.04L42.5467 29.045L47.8334 23ZM19.8617 33.2267L11.6284 24.9717L14.835 21.765L19.8617 26.8133L32.5367 14.095L35.7434 17.3017L19.8617 33.2267Z"
-      fill="#387085"
+      className="fill-primary-light"
     />
   </svg>
 );
@@ -42,9 +42,7 @@ export function RegistrationEndModal({
     >
       <Text variant="body1" className="text-center">
         Your staking transaction has been successfully registered to the{" "}
-        {bbn.networkFullName}. It will be activated and receive voting power in
-        a few blocks. You can monitor the Activity tab for the activation
-        status.
+        {bbn.networkFullName}.
       </Text>
     </SubmitModal>
   );

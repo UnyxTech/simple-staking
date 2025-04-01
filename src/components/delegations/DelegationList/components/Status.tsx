@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { useMemo, type JSX } from "react";
 
+import { DOCUMENTATION_LINKS } from "@/app/constants";
 import { useAppState } from "@/app/state";
 import {
-  DelegationV2,
+  DelegationWithFP,
   DelegationV2StakingState as State,
 } from "@/app/types/delegationsV2";
+import { FinalityProviderState } from "@/app/types/finalityProviders";
 import { NetworkInfo } from "@/app/types/networkInfo";
 import { Hint } from "@/components/common/Hint";
 import { getNetworkConfigBTC } from "@/config/network/btc";
@@ -13,11 +16,11 @@ import { blocksToDisplayTime } from "@/utils/time";
 import { SlashingContent } from "./SlashingContent";
 
 interface StatusProps {
-  delegation: DelegationV2;
+  delegation: DelegationWithFP;
 }
 
 interface StatusParams {
-  delegation: DelegationV2;
+  delegation: DelegationWithFP;
   networkInfo?: NetworkInfo;
 }
 
@@ -49,7 +52,7 @@ const STATUSES: Record<string, StatusAdapter> = {
   }),
   [State.EARLY_UNBONDING]: ({ networkInfo }) => ({
     label: "Unbonding",
-    tooltip: `It will take ${blocksToDisplayTime(networkInfo?.params?.bbnStakingParams.latestParam.unbondingTime ?? 0)} before you can withdraw your stake.`,
+    tooltip: `Stake unbonding is in progress. The unbonding time is set to ${blocksToDisplayTime(networkInfo?.params?.bbnStakingParams.latestParam.unbondingTime ?? 0)}.`,
   }),
   [State.TIMELOCK_WITHDRAWABLE]: () => ({
     label: "Withdrawable",
@@ -108,26 +111,50 @@ const STATUSES: Record<string, StatusAdapter> = {
     label: `Pending ${coinName} Confirmation`,
     tooltip: `Stake is pending ${networkInfo?.params?.btcEpochCheckParams.latestParam.btcConfirmationDepth ?? 0} ${coinName} confirmations`,
   }),
-  [State.INTERMEDIATE_UNBONDING_SUBMITTED]: () => ({
+  [State.INTERMEDIATE_UNBONDING_SUBMITTED]: ({ networkInfo }) => ({
     label: "Unbonding",
-    tooltip: "Stake is requesting unbonding",
+    tooltip: `Stake unbonding is in progress. The unbonding time is set to ${blocksToDisplayTime(networkInfo?.params?.bbnStakingParams.latestParam.unbondingTime ?? 0)}.`,
   }),
   [State.INTERMEDIATE_EARLY_UNBONDING_WITHDRAWAL_SUBMITTED]: () => ({
-    label: "Withdrawal",
+    label: "Withdrawing",
     tooltip: "Withdrawal transaction pending confirmation on Bitcoin",
   }),
   [State.INTERMEDIATE_EARLY_UNBONDING_SLASHING_WITHDRAWAL_SUBMITTED]: () => ({
-    label: "Withdrawal",
+    label: "Withdrawing",
     tooltip: "Withdrawal transaction pending confirmation on Bitcoin",
   }),
   [State.INTERMEDIATE_TIMELOCK_WITHDRAWAL_SUBMITTED]: () => ({
-    label: "Withdrawal",
+    label: "Withdrawing",
     tooltip: "Withdrawal transaction pending confirmation on Bitcoin",
   }),
   [State.INTERMEDIATE_TIMELOCK_SLASHING_WITHDRAWAL_SUBMITTED]: () => ({
-    label: "Withdrawal",
+    label: "Withdrawing",
     tooltip: "Withdrawal transaction pending confirmation on Bitcoin",
   }),
+};
+
+const FP_STATUSES: Record<string, Record<string, StatusAdapter>> = {
+  [FinalityProviderState.ACTIVE]: {},
+  [FinalityProviderState.SLASHED]: {
+    [State.VERIFIED]: () => ({
+      label: "Invalid",
+      tooltip: (
+        <>
+          This Finality Provider has been slashed and is no longer available for
+          staking.{" "}
+          <Link
+            className="text-secondary-main"
+            target="_blank"
+            href={DOCUMENTATION_LINKS.TECHNICAL_PRELIMINARIES}
+          >
+            Learn more
+          </Link>
+        </>
+      ),
+    }),
+  },
+  [FinalityProviderState.INACTIVE]: {},
+  [FinalityProviderState.JAILED]: {},
 };
 
 export function Status({ delegation }: StatusProps) {
@@ -135,7 +162,11 @@ export function Status({ delegation }: StatusProps) {
 
   const delegationStatus = useMemo(
     () =>
-      STATUSES[delegation.state]({
+      FP_STATUSES[delegation.fp?.state]?.[delegation.state]?.({
+        delegation,
+        networkInfo,
+      }) ??
+      STATUSES[delegation.state]?.({
         delegation,
         networkInfo,
       }),

@@ -5,7 +5,15 @@ import { createUnsecuredToken } from "jsontokens";
 
 import { Network } from "@/app/types/network";
 
+type XverseAddress = {
+  address: string;
+  addressType: string;
+  publicKey: string;
+  purpose: "ordinals" | "payment" | "stacks";
+};
+
 export class XverseBTCWallet extends BTCProvider {
+  private addressInfo?: XverseAddress;
   constructor(option: ProviderOption) {
     const win = getWindow(option);
     // @ts-ignore
@@ -15,6 +23,18 @@ export class XverseBTCWallet extends BTCProvider {
     }
     // @ts-ignore
     super(option, provider);
+  }
+
+  async requestAccounts() {
+    await this.connectWallet();
+    return await this.getAccounts();
+  }
+
+  async getAccounts() {
+    return [await this.getAddress()];
+  }
+  async getPublicKey() {
+    return this.getPublicKeyHex();
   }
 
   async request(name: string, data?: any) {
@@ -37,6 +57,7 @@ export class XverseBTCWallet extends BTCProvider {
     const resultAddresses = await this.request("getAddresses", {
       purposes: ["ordinals"],
     });
+    console.log("getConnectionInfo resultAddresses", resultAddresses);
     if (!resultAddresses.addresses?.length) {
       throw new Error("Failed to connect to Xverse Wallet");
     }
@@ -47,26 +68,40 @@ export class XverseBTCWallet extends BTCProvider {
   };
 
   connectWallet = async (): Promise<this> => {
+    if (this.addressInfo) {
+      return this;
+    }
     const response = await this.request("wallet_connect");
-    if (!response.addresses?.length) {
+    if (
+      !response.addresses?.length ||
+      !response.addresses.some((e: XverseAddress) => e.purpose === "ordinals")
+    ) {
       throw new Error("Failed to connect to Xverse Wallet");
     }
-    console.log("Connected to Xverse Wallet");
+    this.addressInfo = response.addresses.find(
+      (e: XverseAddress) => e.purpose === "ordinals",
+    );
+    console.log("Connected to Xverse Wallet", this.addressInfo);
     return this;
   };
 
   async getAddress(): Promise<string> {
-    const resultAddresses = await this.getConnectionInfo();
-    return resultAddresses.address;
+    if (!this.addressInfo) {
+      throw new Error("Please connect your wallet first.");
+    }
+    return this.addressInfo.address;
   }
 
   async getPublicKeyHex(): Promise<string> {
-    const info = await this.getConnectionInfo();
-    console.log("getPublicKeyHex", info.publicKey, info);
-    if (info.publicKey.length === 64) {
-      return "03" + info.publicKey;
+    if (!this.addressInfo) {
+      throw new Error("Please connect your wallet first.");
     }
-    return info.publicKey;
+    const publicKey = this.addressInfo.publicKey;
+    console.log("getPublicKeyHex", publicKey);
+    if (publicKey.length === 64) {
+      return "03" + publicKey;
+    }
+    return publicKey;
   }
 
   async switchNetwork(network: Network) {

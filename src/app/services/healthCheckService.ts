@@ -1,5 +1,8 @@
-import { isAxiosError451 } from "../api/error";
+import { isError451 } from "../api/error";
 import { fetchHealthCheck } from "../api/healthCheckClient";
+import { HttpStatusCode } from "../api/httpStatusCodes";
+import { API_ENDPOINTS } from "../constants/endpoints";
+import { ServerError } from "../context/Error/errors/serverError";
 import {
   API_ERROR_MESSAGE,
   GEO_BLOCK_MESSAGE,
@@ -10,16 +13,21 @@ import {
 export const getHealthCheck = async (): Promise<HealthCheckResult> => {
   try {
     const healthCheckAPIResponse = await fetchHealthCheck();
+
     if (healthCheckAPIResponse.data) {
       return {
         status: HealthCheckStatus.Normal,
         message: healthCheckAPIResponse.data,
       };
     } else {
-      throw new Error(API_ERROR_MESSAGE);
+      throw new ServerError({
+        message: API_ERROR_MESSAGE,
+        endpoint: API_ENDPOINTS.HEALTHCHECK,
+        status: HttpStatusCode.InternalServerError,
+      });
     }
   } catch (error: any) {
-    if (isAxiosError451(error)) {
+    if (isError451(error)) {
       return {
         status: HealthCheckStatus.GeoBlocked,
         message: GEO_BLOCK_MESSAGE,

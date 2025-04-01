@@ -1,68 +1,65 @@
-import { type JSX } from "react";
+import { type ListItemProps, ListItem, Loader } from "@babylonlabs-io/core-ui";
+import { useId } from "react";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { Tooltip } from "react-tooltip";
 
-import { ActionComponent } from "./ActionComponent";
-
-interface StatItemProps {
+interface StatItemProps extends ListItemProps {
   loading?: boolean;
-  icon?: JSX.Element;
-  title: string;
-  value: string | number;
   tooltip?: string;
-  actionComponent?: {
-    title: string;
-    onAction: () => void;
-    isDisabled?: boolean;
-  };
+  loadingStyle?: LoadingStyle;
 }
+
+export enum LoadingStyle {
+  ShowSpinner = "show-spinner",
+  ShowSpinnerAndValue = "show-spinner-and-value",
+}
+
+const SPINNER_RENDERERS: Record<
+  LoadingStyle,
+  (value: string | JSX.Element) => JSX.Element
+> = {
+  [LoadingStyle.ShowSpinner]: () => <Loader size={20} />,
+  [LoadingStyle.ShowSpinnerAndValue]: (value) => (
+    <>
+      <span className="opacity-50">{value}</span>
+      <Loader size={20} />
+    </>
+  ),
+};
 
 export const StatItem = ({
   loading,
-  icon,
   title,
   value,
   tooltip,
-  actionComponent,
-}: StatItemProps) => (
-  <div className="flex gap-2 justify-between md:flex-col md:items-center lg:flex-row lg:items-center">
-    <div className="flex items-center gap-2 md:flex-1 md:flex-col lg:flex-initial lg:flex-row flex-wrap justify-between md:justify-start text-primary-light text-base">
-      <div className="flex items-center gap-2">
-        {icon}
-        <div className="flex items-center gap-1">
-          <p className="dark:text-neutral-content">{title}</p>
-          {tooltip && (
-            <>
-              <span
-                className="cursor-pointer text-xs"
-                data-tooltip-id={`tooltip-${title}`}
-                data-tooltip-content={tooltip}
-                data-tooltip-place="top"
-              >
-                <AiOutlineInfoCircle />
-              </span>
-              <Tooltip id={`tooltip-${title}`} className="tooltip-wrap" />
-            </>
-          )}
-        </div>
-      </div>
+  suffix,
+  loadingStyle = LoadingStyle.ShowSpinner,
+  ...props
+}: StatItemProps) => {
+  const tooltipId = useId();
+  const suffixEl =
+    !suffix && tooltip ? (
+      <>
+        <span
+          className="block size-5 cursor-pointer text-xs"
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={tooltip}
+          data-tooltip-place="top"
+        >
+          <AiOutlineInfoCircle size={20} />
+        </span>
+        <Tooltip id={tooltipId} className="tooltip-wrap" />
+      </>
+    ) : (
+      suffix
+    );
 
-      <div>
-        <p className="flex-1 text-right">
-          {loading ? (
-            <span className="loading loading-spinner text-primary-dark" />
-          ) : (
-            <span className="text-primary-dark">{value}</span>
-          )}
-        </p>
-      </div>
-    </div>
-    {actionComponent ? (
-      <ActionComponent
-        title={actionComponent.title}
-        onAction={actionComponent.onAction}
-        isDisabled={actionComponent.isDisabled}
-      />
-    ) : null}
-  </div>
-);
+  return (
+    <ListItem
+      {...props}
+      title={title}
+      value={loading ? SPINNER_RENDERERS[loadingStyle](value) : value}
+      suffix={suffixEl}
+    />
+  );
+};

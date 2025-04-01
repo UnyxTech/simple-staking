@@ -5,16 +5,18 @@ import {
   getDelegations,
   type PaginatedDelegations,
 } from "@/app/api/getDelegations";
-import { ONE_MINUTE } from "@/app/constants";
-import { useError } from "@/app/context/Error/ErrorContext";
+import { API_DEFAULT_RETRY_COUNT, ONE_MINUTE } from "@/app/constants";
+import { useError } from "@/app/context/Error/ErrorProvider";
 import { useBTCWallet } from "@/app/context/wallet/BTCWalletProvider";
-import { ErrorState } from "@/app/types/errors";
+
+import { useHealthCheck } from "../../useHealthCheck";
 
 export const DELEGATIONS_KEY = "DELEGATIONS";
 
 export function useDelegations({ enabled = true }: { enabled?: boolean } = {}) {
+  const { isGeoBlocked, isLoading } = useHealthCheck();
   const { publicKeyNoCoord } = useBTCWallet();
-  const { isErrorOpen, handleError, captureError } = useError();
+  const { handleError, isOpen } = useError();
 
   const query = useInfiniteQuery({
     queryKey: [DELEGATIONS_KEY, publicKeyNoCoord],
@@ -36,7 +38,8 @@ export function useDelegations({ enabled = true }: { enabled?: boolean } = {}) {
       }
       return ONE_MINUTE;
     },
-    enabled: Boolean(publicKeyNoCoord) && enabled,
+    enabled:
+      Boolean(publicKeyNoCoord) && enabled && !isGeoBlocked && !isLoading,
     select: (data) => {
       const flattenedData = data.pages.reduce<PaginatedDelegations>(
         (acc, page) => {
@@ -50,19 +53,29 @@ export function useDelegations({ enabled = true }: { enabled?: boolean } = {}) {
       return flattenedData;
     },
     retry: (failureCount, _error) => {
-      return !isErrorOpen && failureCount <= 3;
+      return !isOpen && failureCount <= API_DEFAULT_RETRY_COUNT;
     },
   });
 
   useEffect(() => {
-    handleError({
-      error: query.error,
-      hasError: query.isError,
-      errorState: ErrorState.SERVER_ERROR,
-      refetchFunction: query.refetch,
-    });
-    captureError(query.error);
-  }, [query.isError, query.error, query.refetch, handleError, captureError]);
+    if (query.isError) {
+      handleError({
+        error: query.error,
+        displayOptions: {
+          retryAction: query.refetch,
+        },
+        metadata: {
+          userPublicKey: publicKeyNoCoord,
+        },
+      });
+    }
+  }, [
+    query.isError,
+    query.error,
+    query.refetch,
+    handleError,
+    publicKeyNoCoord,
+  ]);
 
   return query;
 }

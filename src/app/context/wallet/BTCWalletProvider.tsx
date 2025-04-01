@@ -5,7 +5,7 @@ import {
   Network,
   useChainConnector,
   useWalletConnect,
-} from "@babylonlabs-io/bbn-wallet-connect";
+} from "@babylonlabs-io/wallet-connector";
 import type { networks } from "bitcoinjs-lib";
 import {
   createContext,
@@ -17,9 +17,10 @@ import {
   type PropsWithChildren,
 } from "react";
 
-import { useError } from "@/app/context/Error/ErrorContext";
-import { ErrorState } from "@/app/types/errors";
+import { useError } from "@/app/context/Error/ErrorProvider";
 import { Fees } from "@/app/types/fee";
+import { getNetworkConfigBTC } from "@/config/network/btc";
+import { XverseBTCWallet } from "@/otherTest/xverse/XverseBTCWallet";
 import {
   getAddressBalance,
   getNetworkFees,
@@ -33,7 +34,29 @@ import {
 } from "@/utils/wallet";
 import { WalletError, WalletErrorType } from "@/utils/wallet/errors";
 
+if (typeof window !== "undefined") {
+  window.injectedTomo = {
+    info: {
+      name: "XV",
+      logo: "",
+    },
+    bitcoin: new XverseBTCWallet({
+      chains: [
+        {
+          id: 2,
+          name: "Bitcoin Signet",
+          type: "bitcoin",
+          network: "signet",
+        },
+      ],
+    }),
+  };
+}
+
+const btcConfig = getNetworkConfigBTC();
+
 interface BTCWalletContextProps {
+  loading: boolean;
   network?: networks.Network;
   publicKeyNoCoord: string;
   address: string;
@@ -45,7 +68,10 @@ interface BTCWalletContextProps {
   signPsbt: (psbtHex: string) => Promise<string>;
   signPsbts: (psbtsHexes: string[]) => Promise<string[]>;
   getNetwork: () => Promise<Network>;
-  signMessage: (message: string, type: "ecdsa") => Promise<string>;
+  signMessage: (
+    message: string,
+    type: "ecdsa" | "bip322-simple",
+  ) => Promise<string>;
   getBalance: (address: string) => Promise<number>;
   getNetworkFees: () => Promise<Fees>;
   pushTx: (txHex: string) => Promise<string>;
@@ -54,6 +80,7 @@ interface BTCWalletContextProps {
 }
 
 const BTCWalletContext = createContext<BTCWalletContextProps>({
+  loading: true,
   network: undefined,
   connected: false,
   publicKeyNoCoord: "",
@@ -74,12 +101,13 @@ const BTCWalletContext = createContext<BTCWalletContextProps>({
 });
 
 export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
+  const [loading, setLoading] = useState(true);
   const [btcWalletProvider, setBTCWalletProvider] = useState<IBTCProvider>();
   const [network, setNetwork] = useState<networks.Network>();
   const [publicKeyNoCoord, setPublicKeyNoCoord] = useState("");
   const [address, setAddress] = useState("");
 
-  const { showError, captureError } = useError();
+  const { handleError } = useError();
   const btcConnector = useChainConnector("BTC");
   const { open = () => {}, connected } = useWalletConnect();
 
@@ -93,14 +121,18 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
   const connectBTC = useCallback(
     async (walletProvider: IBTCProvider | null) => {
       if (!walletProvider) return;
+      setLoading(true);
 
       const supportedNetworkMessage =
         "Only Native SegWit and Taproot addresses are supported. Please switch the address type in your wallet and try again.";
 
       try {
+        const network = await walletProvider.getNetwork();
+        if (network !== btcConfig.network) return;
         const address = await walletProvider.getAddress();
         const supported = isSupportedAddressType(address);
         if (!supported) {
+          // wallet error
           throw new Error(supportedNetworkMessage);
         }
 
@@ -109,9 +141,10 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
         );
 
         setBTCWalletProvider(walletProvider);
-        setNetwork(toNetwork(await walletProvider.getNetwork()));
+        setNetwork(toNetwork(network));
         setAddress(address);
         setPublicKeyNoCoord(publicKeyNoCoord.toString("hex"));
+        setLoading(false);
       } catch (error: any) {
         if (
           error instanceof WalletError &&
@@ -130,20 +163,29 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
             errorMessage = error.message;
             break;
         }
-        showError({
-          error: {
-            message: errorMessage,
-            errorState: ErrorState.WALLET,
+        handleError({
+          // wallet error
+          error: new Error(errorMessage),
+          displayOptions: {
+            retryAction: () => connectBTC(walletProvider),
           },
-          retryAction: () => connectBTC(walletProvider),
+          metadata: {
+            userPublicKey: publicKeyNoCoord,
+            btcAddress: address,
+          },
         });
-        captureError(error);
       }
     },
-    [showError, captureError],
+    [handleError],
   );
 
   useEffect(() => {
+    if (!btcConnector) return;
+    setLoading(false);
+    if (btcConnector.connectedWallet) {
+      connectBTC(btcConnector?.connectedWallet.provider);
+    }
+
     const unsubscribe = btcConnector?.on("connect", (wallet) => {
       if (wallet.provider) {
         connectBTC(wallet.provider);
@@ -157,7 +199,11 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     if (!btcWalletProvider) return;
 
-    const cb = () => void connectBTC(btcWalletProvider);
+    const cb = async () => {
+      await btcWalletProvider.connectWallet();
+      connectBTC(btcWalletProvider);
+    };
+
     btcWalletProvider.on("accountChanged", cb);
 
     return () => void btcWalletProvider.off("accountChanged", cb);
@@ -173,20 +219,26 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
         btcWalletProvider?.signPsbts(psbtsHexes) ?? [],
       getNetwork: async () =>
         btcWalletProvider?.getNetwork() ?? ({} as Network),
-      signMessage: async (message: string, type: "ecdsa") =>
+      signMessage: async (message: string, type: "ecdsa" | "bip322-simple") =>
         btcWalletProvider?.signMessage(message, type) ?? "",
       getBalance: async (address: string) => getAddressBalance(address),
       getNetworkFees: async () => getNetworkFees(),
       pushTx: async (txHex: string) => pushTx(txHex),
       getBTCTipHeight: async () => getTipHeight(),
-      getInscriptions: async (): Promise<InscriptionIdentifier[]> =>
-        btcWalletProvider?.getInscriptions().catch(() => []) ?? [],
+      getInscriptions: async (): Promise<InscriptionIdentifier[]> => {
+        if (!btcWalletProvider?.getInscriptions) {
+          throw new Error("`getInscriptions` method is not provided");
+        }
+
+        return btcWalletProvider.getInscriptions();
+      },
     }),
     [btcWalletProvider],
   );
 
   const btcContextValue = useMemo(
     () => ({
+      loading,
       network,
       publicKeyNoCoord,
       address,
@@ -196,6 +248,7 @@ export const BTCWalletProvider = ({ children }: PropsWithChildren) => {
       ...btcWalletMethods,
     }),
     [
+      loading,
       connected,
       network,
       publicKeyNoCoord,

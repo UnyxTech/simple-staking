@@ -1,4 +1,4 @@
-import { Heading } from "@babylonlabs-io/bbn-core-ui";
+import { Heading } from "@babylonlabs-io/core-ui";
 import { PropsWithChildren } from "react";
 import { twMerge } from "tailwind-merge";
 
@@ -20,7 +20,7 @@ export function Section({
         as="h3"
         variant="h5"
         className={twMerge(
-          "text-primary-dark capitalize mb-4 md:mb-6 md:text-[2.125rem] md:leading-[2.625rem] md:tracking-0.25",
+          "text-accent-primary capitalize mb-4 md:mb-6 md:text-[2.125rem] md:leading-[2.625rem] md:tracking-0.25",
           titleClassName,
         )}
       >

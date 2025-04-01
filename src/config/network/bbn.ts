@@ -1,55 +1,47 @@
-import type { BBNConfig } from "@babylonlabs-io/bbn-wallet-connect";
+import type { BBNConfig } from "@babylonlabs-io/wallet-connector";
 
-import { Network } from "@/app/types/network";
-
+import { bbnCanary } from "./bbn/canary";
 import { bbnDevnet } from "./bbn/devnet";
 import { bbnTestnet } from "./bbn/testnet";
 
-export const network =
-  (process.env.NEXT_PUBLIC_NETWORK as Network) || Network.SIGNET;
-
-const mainnetConfig: BBNConfig = {
-  chainId: bbnTestnet.chainId,
-  rpc: bbnTestnet.rpc,
-  chainData: bbnTestnet,
-  networkName: "BABY",
-  networkFullName: "Babylon Chain",
-  coinSymbol: "BABY",
-};
-
-const signetConfig: BBNConfig = {
-  chainId: bbnDevnet.chainId,
-  rpc: bbnDevnet.rpc,
-  chainData: bbnDevnet,
-  networkName: "Testnet BABY",
-  networkFullName: "Testnet Babylon Chain",
-  coinSymbol: "tBABY",
-};
-
-const testnetConfig: BBNConfig = {
-  chainId: bbnTestnet.chainId,
-  rpc: bbnTestnet.rpc,
-  chainData: bbnTestnet,
-  networkName: "Testnet BABY",
-  networkFullName: "Testnet Babylon Chain",
-  coinSymbol: "tBABY",
-};
+const defaultNetwork = "devnet";
+export const network = process.env.NEXT_PUBLIC_NETWORK ?? defaultNetwork;
 
 const config: Record<string, BBNConfig> = {
-  mainnet: mainnetConfig,
-  signet: signetConfig,
-  testnet: testnetConfig,
+  mainnet: {
+    chainId: bbnTestnet.chainId,
+    rpc: bbnTestnet.rpc,
+    chainData: bbnTestnet,
+    networkName: "BABY",
+    networkFullName: "Babylon Genesis",
+    coinSymbol: "BABY",
+  },
+  canary: {
+    chainId: bbnCanary.chainId,
+    rpc: bbnCanary.rpc,
+    chainData: bbnCanary,
+    networkName: "BABY",
+    networkFullName: "Babylon Genesis",
+    coinSymbol: "BABY",
+  },
+  devnet: {
+    chainId: bbnDevnet.chainId,
+    rpc: bbnDevnet.rpc,
+    chainData: bbnDevnet,
+    networkName: "Testnet BABY",
+    networkFullName: "Testnet Babylon Genesis",
+    coinSymbol: "tBABY",
+  },
+  testnet: {
+    chainId: bbnTestnet.chainId,
+    rpc: bbnTestnet.rpc,
+    chainData: bbnTestnet,
+    networkName: "Testnet BABY",
+    networkFullName: "Testnet Babylon Genesis",
+    coinSymbol: "tBABY",
+  },
 };
 
 export function getNetworkConfigBBN(): BBNConfig {
-  switch (network) {
-    case Network.MAINNET:
-      return config.mainnet;
-    case Network.SIGNET:
-      return config.signet;
-    case Network.TESTNET:
-      return config.testnet;
-    default:
-      return config.signet;
-  }
+  return config[network] ?? config[defaultNetwork];
 }

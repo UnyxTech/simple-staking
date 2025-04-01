@@ -1,14 +1,16 @@
+import { List } from "@babylonlabs-io/core-ui";
 import { memo } from "react";
 
 import { Section } from "@/app/components/Section/Section";
+import { usePrice } from "@/app/hooks/client/api/usePrices";
 import { useSystemStats } from "@/app/hooks/client/api/useSystemStats";
 import { getNetworkConfigBTC } from "@/config/network/btc";
 import { satoshiToBtc } from "@/utils/btc";
-import { maxDecimals } from "@/utils/maxDecimals";
+import { formatBTCTvl } from "@/utils/formatBTCTvl";
 
 import { StatItem } from "./StatItem";
 
-const { coinName, coinSymbol } = getNetworkConfigBTC();
+const { coinSymbol } = getNetworkConfigBTC();
 
 const formatter = Intl.NumberFormat("en", {
   notation: "compact",
@@ -24,20 +26,23 @@ export const Stats = memo(() => {
   const totalFinalityProviders = data?.total_finality_providers ?? 0;
   const activeFinalityProviders = data?.active_finality_providers ?? 0;
 
+  const btcInUsd = usePrice(coinSymbol);
+
+  const tvlInBtc = satoshiToBtc(activeTvl);
+  const tvlInUsd = tvlInBtc * btcInUsd;
+
   return (
     <Section
       title="Babylon Bitcoin Staking Stats"
-      titleClassName="text-primary-contrast"
+      titleClassName="text-accent-contrast"
     >
-      <div className="flex flex-col justify-between bg-secondary-contrast rounded p-6 text-base md:flex-row border border-primary-dark/20">
+      <List orientation="adaptive" className="bg-surface">
         <StatItem
           loading={isLoading}
           title={`Confirmed ${coinSymbol} TVL`}
-          value={`${satoshiToBtc(activeTvl) >= 1 ? maxDecimals(satoshiToBtc(activeTvl), 2) : maxDecimals(satoshiToBtc(activeTvl), 8)} ${coinSymbol}`}
+          value={formatBTCTvl(tvlInBtc, coinSymbol, tvlInUsd)}
           tooltip="Total number of active bitcoins staked"
         />
-
-        <div className="divider mx-0 my-2 md:divider-horizontal" />
 
         <StatItem
           loading={isLoading}
@@ -46,7 +51,6 @@ export const Stats = memo(() => {
           tooltip="Total number of active bitcoin stakers"
         />
 
-        <div className="divider mx-0 my-2 md:divider-horizontal" />
         <StatItem
           loading={isLoading}
           title="Delegations"
@@ -54,14 +58,15 @@ export const Stats = memo(() => {
           tooltip="Total number of active bitcoin staking delegations"
         />
 
-        <div className="divider mx-0 my-2 md:divider-horizontal" />
         <StatItem
           loading={isLoading}
           title="Finality Providers"
-          value={`${activeFinalityProviders} Active (${totalFinalityProviders} Total)`}
+          value={`${activeFinalityProviders} Active (${
+            totalFinalityProviders
+          } Total)`}
           tooltip="Active and total number of finality providers"
         />
-      </div>
+      </List>
     </Section>
   );
 });

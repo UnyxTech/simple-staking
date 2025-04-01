@@ -4,9 +4,8 @@ import {
   DialogFooter,
   DialogHeader,
   Loader,
-} from "@babylonlabs-io/bbn-core-ui";
+} from "@babylonlabs-io/core-ui";
 import { PropsWithChildren } from "react";
-import { twMerge } from "tailwind-merge";
 
 import { ResponsiveDialog } from "./ResponsiveDialog";
 
@@ -28,18 +27,14 @@ export const ConfirmationModal = ({
   onClose,
   onSubmit,
 }: PropsWithChildren<ConfirmationModalProps>) => (
-  <ResponsiveDialog
-    className={twMerge("max-w-[660px]", className)}
-    open={open}
-    onClose={onClose}
-  >
+  <ResponsiveDialog className={className} open={open} onClose={onClose}>
     <DialogHeader
       title={title}
-      className="text-primary-dark"
+      className="text-accent-primary"
       onClose={onClose}
     />
 
-    <DialogBody className="text-primary-dark">{children}</DialogBody>
+    <DialogBody className="text-accent-primary">{children}</DialogBody>
 
     <DialogFooter className="flex gap-4">
       <Button
@@ -57,7 +52,11 @@ export const ConfirmationModal = ({
         onClick={onSubmit}
         className="flex-1"
       >
-        {processing ? <Loader size={16} className="text-white" /> : "Proceed"}
+        {processing ? (
+          <Loader size={16} className="text-accent-contrast" />
+        ) : (
+          "Proceed"
+        )}
       </Button>
     </DialogFooter>
   </ResponsiveDialog>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ScrollLocker } from "@babylonlabs-io/bbn-core-ui";
+import { ScrollLocker } from "@babylonlabs-io/core-ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experimental";
@@ -8,7 +8,7 @@ import { ThemeProvider } from "next-themes";
 import React, { Suspense } from "react";
 
 import { NotificationContainer } from "./components/Notification/NotificationContainer";
-import { ErrorProvider } from "./context/Error/ErrorContext";
+import { ErrorProvider } from "./context/Error/ErrorProvider";
 import { StakingStatsProvider } from "./context/api/StakingStatsProvider";
 import { BbnRpcProvider } from "./context/rpc/BbnRpcProvider";
 import { BTCWalletProvider } from "./context/wallet/BTCWalletProvider";
@@ -22,11 +22,7 @@ function Providers({ children }: React.PropsWithChildren) {
   return (
     <Suspense>
       <ScrollLocker>
-        <ThemeProvider
-          defaultTheme="light"
-          enableSystem={false}
-          attribute="data-theme"
-        >
+        <ThemeProvider defaultTheme="light" enableSystem attribute="class">
           <QueryClientProvider client={client}>
             <ErrorProvider>
               <BbnRpcProvider>

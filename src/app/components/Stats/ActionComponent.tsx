@@ -1,10 +1,11 @@
-import { Button, Loader } from "@babylonlabs-io/bbn-core-ui";
+import { Button, Loader } from "@babylonlabs-io/core-ui";
 
 interface ActionComponentProps {
   title: string;
   onAction: () => void;
   awaitingResponse?: boolean;
   isDisabled?: boolean;
+  className?: string;
 }
 
 export function ActionComponent({
@@ -12,9 +13,11 @@ export function ActionComponent({
   onAction,
   awaitingResponse,
   isDisabled,
+  className,
 }: ActionComponentProps) {
   return (
     <Button
+      className={className}
       variant="outlined"
       size="small"
       onClick={onAction}

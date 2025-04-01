@@ -1,4 +1,9 @@
+import { List } from "@babylonlabs-io/core-ui";
+
+import { useUTXOs } from "@/app/hooks/client/api/useUTXOs";
 import { useRewardsService } from "@/app/hooks/services/useRewardsService";
+import { useIsMobileView } from "@/app/hooks/useBreakpoint";
+import { useBalanceState } from "@/app/state/BalanceState";
 import { useRewardsState } from "@/app/state/RewardState";
 import { AuthGuard } from "@/components/common/AuthGuard";
 import { getNetworkConfigBBN } from "@/config/network/bbn";
@@ -8,68 +13,92 @@ import { satoshiToBtc } from "@/utils/btc";
 
 import { ClaimRewardModal } from "../Modals/ClaimRewardModal";
 import { Section } from "../Section/Section";
-import { StatItem } from "../Stats/StatItem";
+import { ActionComponent } from "../Stats/ActionComponent";
+import { LoadingStyle, StatItem } from "../Stats/StatItem";
 
 const { networkName: bbnNetworkName, coinSymbol: bbnCoinSymbol } =
   getNetworkConfigBBN();
-const { coinName, coinSymbol } = getNetworkConfigBTC();
+const { coinSymbol } = getNetworkConfigBTC();
 
 export function PersonalBalance() {
+  // Load reward state
   const {
     loading,
     processing,
     showRewardModal,
     bbnAddress,
-    stakableBtcBalance,
-    totalBtcBalance,
-    bbnBalance,
     rewardBalance,
     transactionFee,
     closeRewardModal,
   } = useRewardsState();
-  const { claimRewards, showPreview } = useRewardsService();
 
+  // Load balance state
+  const {
+    bbnBalance,
+    stakableBtcBalance,
+    stakedBtcBalance,
+    inscriptionsBtcBalance,
+    loading: isBalanceLoading,
+  } = useBalanceState();
+
+  const { allUTXOs = [], confirmedUTXOs = [] } = useUTXOs();
+  const hasUnconfirmedUTXOs = allUTXOs.length > confirmedUTXOs.length;
+
+  const { claimRewards, showPreview } = useRewardsService();
+  const isMobile = useIsMobileView();
   const formattedRewardBalance = ubbnToBaby(rewardBalance);
 
   return (
     <AuthGuard>
       <Section title="Wallet Balance">
-        <div className="flex flex-col justify-between bg-secondary-contrast rounded p-6 text-base md:flex-row border border-primary-dark/20">
+        <List orientation="adaptive" className="bg-surface">
           <StatItem
             loading={loading}
-            title={`Total ${coinName} Balance`}
-            value={`${satoshiToBtc(totalBtcBalance)} ${coinSymbol}`}
+            title="Staked Balance"
+            value={`${satoshiToBtc(stakedBtcBalance)} ${coinSymbol}`}
           />
 
-          <div className="divider mx-0 my-2 md:divider-horizontal" />
-
           <StatItem
-            loading={loading}
-            title={"Stakable Balance"}
+            loading={loading || hasUnconfirmedUTXOs}
+            title="Stakable Balance"
+            loadingStyle={
+              hasUnconfirmedUTXOs
+                ? LoadingStyle.ShowSpinnerAndValue
+                : LoadingStyle.ShowSpinner
+            }
             value={`${satoshiToBtc(stakableBtcBalance)} ${coinSymbol}`}
+            tooltip={
+              inscriptionsBtcBalance
+                ? `You have ${satoshiToBtc(inscriptionsBtcBalance)} ${coinSymbol} that contains inscriptions. To use this in your stakable balance unlock them within the menu.`
+                : undefined
+            }
           />
 
-          <div className="divider mx-0 my-2 md:divider-horizontal" />
+          <StatItem
+            loading={isBalanceLoading}
+            title={`${isMobile ? "BABY" : bbnNetworkName} Balance`}
+            value={
+              isBalanceLoading
+                ? ""
+                : `${ubbnToBaby(bbnBalance)} ${bbnCoinSymbol}`
+            }
+            loadingStyle={LoadingStyle.ShowSpinner}
+          />
 
           <StatItem
             loading={loading}
-            title={`${bbnNetworkName} Balance`}
-            value={`${ubbnToBaby(bbnBalance)} ${bbnCoinSymbol}`}
-          />
-
-          <div className="divider mx-0 my-2 md:divider-horizontal" />
-
-          <StatItem
-            loading={loading}
-            title={`${bbnNetworkName} Rewards`}
+            title={`${isMobile ? "BABY" : bbnNetworkName} Rewards`}
             value={`${formattedRewardBalance} ${bbnCoinSymbol}`}
-            actionComponent={{
-              title: "Claim",
-              onAction: showPreview,
-              isDisabled: !rewardBalance || processing,
-            }}
+            suffix={
+              <ActionComponent
+                className="h-6"
+                title="Claim"
+                onAction={showPreview}
+                isDisabled={!rewardBalance || processing}
+              />
+            }
           />
-        </div>
+        </List>
 
         <ClaimRewardModal
           processing={processing}

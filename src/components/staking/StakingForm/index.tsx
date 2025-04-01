@@ -1,28 +1,32 @@
-import { Heading, Loader, Text } from "@babylonlabs-io/bbn-core-ui";
-import { useState } from "react";
+import { Heading, HiddenField, Loader, Text } from "@babylonlabs-io/core-ui";
+import Image from "next/image";
 
 import { StatusView } from "@/app/components/Staking/FinalityProviders/FinalityProviderTableStatusView";
 import apiNotAvailable from "@/app/components/Staking/Form/States/api-not-available.svg";
 import { Message } from "@/app/components/Staking/Form/States/Message";
-import stakingNotStartedIcon from "@/app/components/Staking/Form/States/staking-not-started.svg";
+import stakingUnavailableIcon from "@/app/components/Staking/Form/States/staking-unavailable.svg";
 import walletIcon from "@/app/components/Staking/Form/States/wallet-icon.svg";
 import { WalletNotConnected } from "@/app/components/Staking/Form/States/WalletNotConnected";
+import { BBN_FEE_AMOUNT } from "@/app/constants";
+import { useBalanceState } from "@/app/state/BalanceState";
 import { AuthGuard } from "@/components/common/AuthGuard";
 
 import { AmountField } from "./components/AmountField";
-import { FeeAmountField } from "./components/FeeAmountField";
-import { FeeInfo } from "./components/FeeInfo";
-import { FeeRateField } from "./components/FeeRateField";
+import { BBNFeeAmount } from "./components/BBNFeeAmount";
+import { BTCFeeAmount } from "./components/BTCFeeAmount";
+import { BTCFeeRate } from "./components/BTCFeeRate";
 import { FeeSection } from "./components/FeeSection";
 import { InfoAlert } from "./components/InfoAlert";
 import { FormOverlay } from "./components/Overlay";
 import { SubmitButton } from "./components/SubmitButton";
 import { TermField } from "./components/TermField";
+import { Total } from "./components/Total";
 
 interface DelegationFormProps {
   loading?: boolean;
   blocked?: boolean;
   available?: boolean;
+  disabled?: boolean;
   hasError?: boolean;
   error?: string;
   stakingInfo?: {
@@ -41,17 +45,18 @@ export function DelegationForm({
   loading,
   blocked,
   available,
+  disabled = false,
   hasError,
   error,
   stakingInfo,
 }: DelegationFormProps) {
-  const [isCustomFee, setIsCustomFee] = useState(false);
+  const { stakableBtcBalance } = useBalanceState();
 
   if (loading) {
     return (
       <StatusView
         className="flex-1 h-auto"
-        icon={<Loader />}
+        icon={<Loader className="text-primary-light" />}
         title="Please wait..."
       />
     );
@@ -60,9 +65,34 @@ export function DelegationForm({
   if (blocked) {
     return (
       <Message
-        icon={walletIcon}
         title="Unavailable in Your Region"
         message={error ?? ""}
+        icon={
+          <Image
+            src={walletIcon}
+            alt="Unavailable in Your Region"
+            width={120}
+            height={122}
+            className="rotate-12"
+          />
+        }
+      />
+    );
+  }
+
+  if (disabled) {
+    return (
+      <Message
+        title="Staking Currently Unavailable"
+        message="Staking is temporarily disabled due to network downtime. New stakes are paused until the network resumes."
+        icon={
+          <Image
+            src={stakingUnavailableIcon}
+            alt="Staking Unavailable"
+            width={120}
+            height={122}
+          />
+        }
       />
     );
   }
@@ -72,7 +102,14 @@ export function DelegationForm({
       <Message
         title="Staking Temporarily Unavailable"
         message="Staking is not enabled at this time. Please check back later."
-        icon={stakingNotStartedIcon}
+        icon={
+          <Image
+            src={stakingUnavailableIcon}
+            alt="Staking Not Started"
+            width={120}
+            height={122}
+          />
+        }
       />
     );
   }
@@ -80,21 +117,34 @@ export function DelegationForm({
   if (hasError) {
     return (
       <Message
-        icon={apiNotAvailable}
+        icon={
+          <Image
+            src={apiNotAvailable}
+            alt="Staking is not available"
+            width={120}
+            height={122}
+            className="rotate-12"
+          />
+        }
         title="Staking is not available"
         message={error ?? ""}
       />
     );
   }
 
+  const maxAmount = Math.min(
+    stakableBtcBalance,
+    stakingInfo?.maxStakingAmountSat || 0,
+  );
+
   return (
     <AuthGuard fallback={<WalletNotConnected />}>
-      <div className="relative flex flex-1 flex-col gap-4">
-        <Heading variant="h5" className="text-primary-dark">
+      <div className="relative flex flex-1 flex-col gap-6">
+        <Heading variant="h5" className="text-accent-primary">
           Step 2
         </Heading>
 
-        <Text variant="body1" className="text-primary-light">
+        <Text variant="body1" className="text-accent-secondary">
           Set Staking Amount
         </Text>
 
@@ -110,21 +160,23 @@ export function DelegationForm({
 
             <AmountField
               min={stakingInfo?.minStakingAmountSat}
-              max={stakingInfo?.maxStakingAmountSat}
+              max={maxAmount}
             />
 
+            <HiddenField name="feeRate" defaultValue="0" />
+
+            <HiddenField name="feeAmount" defaultValue="0" />
+
             <FeeSection>
-              <FeeInfo custom={isCustomFee} />
+              <div className="flex flex-col gap-4 mt-4">
+                <BTCFeeRate defaultRate={stakingInfo?.defaultFeeRate} />
+                <BTCFeeAmount />
+                {BBN_FEE_AMOUNT && <BBNFeeAmount amount={BBN_FEE_AMOUNT} />}
+              </div>
 
-              <FeeRateField
-                expanded={isCustomFee}
-                defaultRate={stakingInfo?.defaultFeeRate}
-                min={stakingInfo?.minFeeRate}
-                max={stakingInfo?.maxFeeRate}
-                onExpand={() => void setIsCustomFee(true)}
-              />
+              <div className="divider my-4" />
 
-              <FeeAmountField />
+              <Total />
             </FeeSection>
           </FormOverlay>
 

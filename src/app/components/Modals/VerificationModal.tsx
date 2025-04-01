@@ -1,4 +1,4 @@
-import { Loader } from "@babylonlabs-io/bbn-core-ui";
+import { Loader } from "@babylonlabs-io/core-ui";
 
 import { getNetworkConfig } from "@/config/network";
 
@@ -19,7 +19,7 @@ const VERIFICATION_STEPS = {
         1/2 <br /> Processing Confirmation
       </>
     ),
-    description: `Waiting for the staking confirmation to be confirmed on ${bbn.networkFullName}.`,
+    description: `Waiting for the staking registration to be confirmed on ${bbn.networkFullName}.`,
   },
   2: {
     title: (
@@ -39,7 +39,7 @@ export const VerificationModal = ({
   <SubmitModal
     disabled={processing}
     open={open}
-    icon={<Loader size={48} />}
+    icon={<Loader size={48} className="text-primary-light" />}
     title={VERIFICATION_STEPS[step].title}
     submitButton={`Stake ${btc.coinName}`}
     cancelButton=""

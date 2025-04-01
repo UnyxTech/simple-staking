@@ -1,10 +1,12 @@
-import { useWalletConnect } from "@babylonlabs-io/bbn-wallet-connect";
+import { useWalletConnect } from "@babylonlabs-io/wallet-connector";
 import {
   useEffect,
   useState,
   type PropsWithChildren,
   type ReactNode,
 } from "react";
+
+import { useHealthCheck } from "@/app/hooks/useHealthCheck";
 
 interface AuthGuardProps {
   fallback?: ReactNode;
@@ -14,8 +16,11 @@ export function AuthGuard({
   children,
   fallback,
 }: PropsWithChildren<AuthGuardProps>) {
-  const { connected: isConnected } = useWalletConnect();
   const [displayComponent, setDisplayComponent] = useState(false);
+
+  const { connected } = useWalletConnect();
+  const { isGeoBlocked, isLoading } = useHealthCheck();
+  const isConnected = connected && !isGeoBlocked && !isLoading;
 
   useEffect(() => {
     setDisplayComponent(isConnected);
